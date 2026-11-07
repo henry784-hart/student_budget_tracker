@@ -60,6 +60,28 @@ section {
   padding: 0;
   margin: 0;
 }
+   #add-transaction input,
+   #add-transaction select {
+     background: white;
+     color: #222;
+   }
+
+   #list li {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     padding: 0.6rem 0;
+     border-bottom: 1px solid #eee;
+   }
+
+   #list li button {
+     background: #c0392b;
+     color: white;
+     border: none;
+     border-radius: 6px;
+     padding: 0.3rem 0.7rem;
+     cursor: pointer;
+   }
 @media (min-width: 768px) {
   body {
     padding: 2rem;
