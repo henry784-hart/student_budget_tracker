@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Budget Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>Student Budget Tracker</h1>
+
+    <section id="summary">
+      <div>Income: <span id="income">0</span></div>
+      <div>Expenses: <span id="expenses">0</span></div>
+      <div>Balance: <span id="balance">0</span></div>
+    </section>
+
+    <section id="add-transaction">
+      <h2>Add transaction</h2>
+      <input type="number" id="amount" placeholder="Amount (KES)">
+      <select id="type">
+        <option value="expense">Expense</option>
+        <option value="income">Income</option>
+      </select>
+      <input type="text" id="category" placeholder="Category e.g. Food">
+      <input type="date" id="date">
+      <button id="add-btn">Add</button>
+    </section>
+
+    <section id="transactions">
+      <h2>Transactions</h2>
+      <ul id="list"></ul>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
