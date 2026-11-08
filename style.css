@@ -150,7 +150,10 @@
   opacity: 0.7;
   text-align: center;
 }
-
+#add-transaction input,
+#add-transaction select {
+  color-scheme: light;
+}
  @media (min-width: 768px) {
    body {
      padding: 2rem;
