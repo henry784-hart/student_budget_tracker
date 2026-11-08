@@ -1,11 +1,11 @@
-* {
+ *{ 
   box-sizing: border-box;
 }
 
 body {
   font-family: system-ui, sans-serif;
-  background: #f4f6f8;
-  color: #222;
+  background: #153552;
+  color: #00fad4;
   margin: 0;
   padding: 1rem;
 }
@@ -21,7 +21,7 @@ h1 {
 }
 
 section {
-  background: white;
+  background: rgba(41, 139, 163, 0.25);
   border-radius: 10px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -40,7 +40,7 @@ section {
 #add-transaction select,
 #add-transaction button {
   display: block;
-  width: 100%;
+  width: 100%;  
   padding: 0.7rem;
   margin-bottom: 0.6rem;
   font-size: 1rem;
@@ -82,6 +82,9 @@ section {
      padding: 0.3rem 0.7rem;
      cursor: pointer;
    }
+   #list li.tx-income { color: #4ade80; }
+#list li.tx-expense { color: #fb923c; }
+ 
 @media (min-width: 768px) {
   body {
     padding: 2rem;

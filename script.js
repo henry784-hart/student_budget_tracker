@@ -69,6 +69,7 @@ function render() {
     }
 
     const li = document.createElement("li");
+    li.classList.add(t.type === "income" ? "tx-income" : "tx-expense");
     const sign = t.type === "income" ? "+" : "-";
     li.textContent = `${t.date} · ${t.category} · ${sign}${t.amount} KES `;
 
