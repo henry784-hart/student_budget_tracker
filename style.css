@@ -155,6 +155,43 @@
   color-scheme: light;
 }
 
+#budget-form {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+#budget-form input {
+  flex: 1;
+  padding: 0.7rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  color-scheme: light;
+}
+
+#budget-form button {
+  padding: 0.7rem 1rem;
+  font-size: 1rem;
+  background: #1a7f4b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#budget-status {
+  margin: 0 0 0.6rem;
+}
+
+#budget-fill.ok { background: #4ade80; }
+#budget-fill.warn { background: #fb923c; }
+#budget-fill.over { background: #ef4444; }
+
+#budget-status.over { color: #fb923c; }
+
  @media (min-width: 768px) {
    body {
      padding: 2rem;
