@@ -100,6 +100,9 @@ section {
 #add-transaction input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   filter: invert(0.2);
+  #note {
+  grid-column: 1 / -1;
+}
 }
 
 @media (min-width: 768px) {

@@ -11,6 +11,7 @@ const amountInput = document.getElementById("amount");
 const typeInput = document.getElementById("type");
 const categoryInput = document.getElementById("category");
 const dateInput = document.getElementById("date");
+const noteInput = document.getElementById("note");
 const addBtn = document.getElementById("add-btn");
 const list = document.getElementById("list");
 const incomeEl = document.getElementById("income");
@@ -43,6 +44,7 @@ function addTransaction() {
     type: typeInput.value,
     category: category,
     date: dateInput.value,
+    note: noteInput.value.trim(),
   });
 
   save();
@@ -51,6 +53,7 @@ function addTransaction() {
   amountInput.value = "";
   categoryInput.value = "";
   dateInput.value = "";
+  noteInput.value = "";
 }
 
 // 6. Delete a transaction
@@ -90,9 +93,10 @@ function render() {
     li.classList.add(t.type === "income" ? "tx-income" : "tx-expense");
 
     const sign = t.type === "income" ? "+" : "-";
-    li.textContent = `${t.date} · ${t.category} · ${sign}${formatNumber(t.amount)} KES `;
+     const noteText = t.note ? ` · ${t.note}` : "";
+li.textContent = `${t.date} · ${t.category}${noteText} · ${sign}${formatNumber(t.amount)} KES `;
 
-    const btn = document.createElement("button");
+    // const btn = document.createElement("button");
     btn.textContent = "Delete";
     btn.addEventListener("click", () => deleteTransaction(t.id));
 
