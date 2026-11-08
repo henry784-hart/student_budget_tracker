@@ -7,7 +7,10 @@ see their balance, and keep track of where their money goes.
 
 ## Features
 - Add income and expense transactions
+- Optional note on each transaction
 - See total income, expenses and balance
+- Spending breakdown by category
+- Newest transactions shown first
 - Delete transactions
 - Data is saved in your browser
 - Works on phones, tablets and laptops
@@ -21,7 +24,6 @@ HTML, CSS and JavaScript
 3. Open `index.html` in your browser (or use the Live Server extension)
 
 ## Roadmap
--## Roadmap
 - [x] Optional note on each transaction
 - [x] Spending breakdown by category
 - [ ] Edit transactions
