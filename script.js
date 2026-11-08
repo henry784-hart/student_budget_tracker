@@ -17,6 +17,7 @@ const list = document.getElementById("list");
 const incomeEl = document.getElementById("income");
 const expensesEl = document.getElementById("expenses");
 const balanceEl = document.getElementById("balance");
+const breakdownList = document.getElementById("breakdown-list");
 
 // 3. Format numbers with commas
 function formatNumber(n) {
@@ -110,8 +111,53 @@ function render() {
 
   balanceEl.classList.toggle("positive", balance >= 0);
   balanceEl.classList.toggle("negative", balance < 0);
+  renderBreakdown();
 }
+// Spending by category (expenses only)
+function renderBreakdown() {
+  breakdownList.innerHTML = "";
 
+  const totals = {};
+  transactions.forEach((t) => {
+    if (t.type !== "expense") return;
+    const key = t.category.trim().toLowerCase();
+    totals[key] = (totals[key] || 0) + t.amount;
+  });
+
+  const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+
+  if (entries.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "bd-empty";
+    empty.textContent = "No expenses yet.";
+    breakdownList.appendChild(empty);
+    return;
+  }
+
+  const totalSpent = entries.reduce((sum, entry) => sum + entry[1], 0);
+
+  entries.forEach(([name, amount]) => {
+    const pct = Math.round((amount / totalSpent) * 100);
+    const title = name.charAt(0).toUpperCase() + name.slice(1);
+
+    const li = document.createElement("li");
+
+    const label = document.createElement("div");
+    label.className = "bd-label";
+    label.textContent = `${title} · ${formatNumber(amount)} KES (${pct}%)`;
+
+    const bar = document.createElement("div");
+    bar.className = "bd-bar";
+    const fill = document.createElement("div");
+    fill.className = "bd-fill";
+    fill.style.width = pct + "%";
+    bar.appendChild(fill);
+
+    li.appendChild(label);
+    li.appendChild(bar);
+    breakdownList.appendChild(li);
+  });
+}
 // 8. Connect the button, then draw the page once on load
 addBtn.addEventListener("click", addTransaction);
 render();

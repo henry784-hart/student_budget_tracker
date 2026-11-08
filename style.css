@@ -102,6 +102,37 @@ section {
   filter: invert(0.2);
   #note {
   grid-column: 1 / -1;
+  #breakdown-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#breakdown-list li {
+  margin-bottom: 0.9rem;
+}
+
+.bd-label {
+  margin-bottom: 0.3rem;
+}
+
+.bd-bar {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.bd-fill {
+  height: 100%;
+  background: #fb923c;
+  border-radius: 6px;
+}
+
+#breakdown-list li.bd-empty {
+  opacity: 0.7;
+  text-align: center;
+}
 }
 }
 
