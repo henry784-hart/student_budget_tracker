@@ -112,84 +112,101 @@
  }
 
  #add-transaction input[type="date"]::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-}
+   cursor: pointer;
+ }
 
-#note {
-  grid-column: 1 / -1;
-}
+ #note {
+   grid-column: 1 / -1;
+ }
 
-#breakdown-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+ #breakdown-list {
+   list-style: none;
+   padding: 0;
+   margin: 0;
+ }
 
-#breakdown-list li {
-  margin-bottom: 0.9rem;
-}
+ #breakdown-list li {
+   margin-bottom: 0.9rem;
+ }
 
-.bd-label {
-  margin-bottom: 0.3rem;
-}
+ .bd-label {
+   margin-bottom: 0.3rem;
+ }
 
-.bd-bar {
-  height: 10px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  overflow: hidden;
-}
+ .bd-bar {
+   height: 10px;
+   background: rgba(255, 255, 255, 0.15);
+   border-radius: 6px;
+   overflow: hidden;
+ }
 
-.bd-fill {
-  height: 100%;
-  background: #fb923c;
-  border-radius: 6px;
-}
+ .bd-fill {
+   height: 100%;
+   background: #fb923c;
+   border-radius: 6px;
+ }
 
-#breakdown-list li.bd-empty {
-  opacity: 0.7;
-  text-align: center;
-}
-#add-transaction input,
-#add-transaction select {
-  color-scheme: light;
-}
+ #breakdown-list li.bd-empty {
+   opacity: 0.7;
+   text-align: center;
+ }
 
-#budget-form {
-  display: flex;
-  gap: 0.6rem;
-  margin-bottom: 0.8rem;
-}
+ #add-transaction input,
+ #add-transaction select {
+   color-scheme: light;
+ }
 
-#budget-form input {
-  flex: 1;
-  padding: 0.7rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: white;
-  color: #222;
-  color-scheme: light;
-}
+ #budget-form {
+   display: flex;
+   gap: 0.6rem;
+   margin-bottom: 0.8rem;
+ }
 
-#budget-form button {
-  padding: 0.7rem 1rem;
-  font-size: 1rem;
-  background: #1a7f4b;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
+ #budget-form input {
+   flex: 1;
+   padding: 0.7rem;
+   font-size: 1rem;
+   border: 1px solid #ccc;
+   border-radius: 6px;
+   background: white;
+   color: #222;
+   color-scheme: light;
+ }
 
-#budget-status {
-  margin: 0 0 0.6rem;
-}
+ #budget-form button {
+   padding: 0.7rem 1rem;
+   font-size: 1rem;
+   background: #1a7f4b;
+   color: white;
+   border: none;
+   border-radius: 6px;
+   cursor: pointer;
+ }
 
-#budget-fill.ok { background: #4ade80; }
-#budget-fill.warn { background: #fb923c; }
-#budget-fill.over { background: #ef4444; }
-#budget-status.warn { color: #fb923c; } */
+ #budget-status {
+   margin: 0 0 0.6rem;
+ }
+
+ #budget-status.warn {
+   color: #fb923c;
+ }
+
+ #budget-status.over {
+   color: #f87171;
+   font-weight: bold;
+ }
+
+ #budget-fill.ok {
+   background: #4ade80;
+ }
+
+ #budget-fill.warn {
+   background: #fb923c;
+ }
+
+ #budget-fill.over {
+   background: #ef4444;
+ }
 
  @media (min-width: 768px) {
    body {

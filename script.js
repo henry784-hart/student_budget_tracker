@@ -149,20 +149,22 @@ function renderBreakdown() {
   const totalSpent = entries.reduce((sum, entry) => sum + entry[1], 0);
 
   entries.forEach(([name, amount]) => {
-    const pct = Math.round((amount / totalSpent) * 100);
+    const raw = (amount / totalSpent) * 100;
+const pct = Math.round(raw);
+const pctText = raw < 1 ? "<1%" : pct + "%";
     const title = name.charAt(0).toUpperCase() + name.slice(1);
 
     const li = document.createElement("li");
 
     const label = document.createElement("div");
     label.className = "bd-label";
-    label.textContent = `${title} · ${formatNumber(amount)} KES (${pct}%)`;
+    label.textContent = `${title} · ${formatNumber(amount)} KES (${pctText})`;
 
     const bar = document.createElement("div");
     bar.className = "bd-bar";
     const fill = document.createElement("div");
     fill.className = "bd-fill";
-    fill.style.width = pct + "%";
+   fill.style.width = Math.max(raw, 1) + "%";
     bar.appendChild(fill);
 
     li.appendChild(label);
