@@ -21,7 +21,9 @@ HTML, CSS and JavaScript
 3. Open `index.html` in your browser (or use the Live Server extension)
 
 ## Roadmap
-- [ ] Spending breakdown by category
+## Roadmap
+- [x] Optional note on each transaction
+- [x] Spending breakdown by category
 - [ ] Edit transactions
 - [ ] Monthly budgets
 - [ ] Backend and database (Python + Flask)
