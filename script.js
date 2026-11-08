@@ -10,15 +10,15 @@ try {
 const amountInput = document.getElementById("amount");
 const typeInput = document.getElementById("type");
 const categoryInput = document.getElementById("category");
-const dateInput = document.getElementById("date");
 const noteInput = document.getElementById("note");
+const dateInput = document.getElementById("date");
 const addBtn = document.getElementById("add-btn");
 const list = document.getElementById("list");
 const incomeEl = document.getElementById("income");
 const expensesEl = document.getElementById("expenses");
 const balanceEl = document.getElementById("balance");
 
-// 3. Format numbers with commas, e.g. 1500000 -> 1,500,000
+// 3. Format numbers with commas
 function formatNumber(n) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
@@ -43,8 +43,8 @@ function addTransaction() {
     amount: amount,
     type: typeInput.value,
     category: category,
-    date: dateInput.value,
     note: noteInput.value.trim(),
+    date: dateInput.value,
   });
 
   save();
@@ -52,8 +52,8 @@ function addTransaction() {
 
   amountInput.value = "";
   categoryInput.value = "";
-  dateInput.value = "";
   noteInput.value = "";
+  dateInput.value = "";
 }
 
 // 6. Delete a transaction
@@ -69,7 +69,6 @@ function render() {
   let income = 0;
   let expenses = 0;
 
-  // Empty message
   if (transactions.length === 0) {
     const empty = document.createElement("li");
     empty.className = "empty";
@@ -77,7 +76,6 @@ function render() {
     list.appendChild(empty);
   }
 
-  // Newest date first (ties: most recently added first)
   const sorted = [...transactions].sort(
     (a, b) => b.date.localeCompare(a.date) || b.id - a.id
   );
@@ -93,10 +91,10 @@ function render() {
     li.classList.add(t.type === "income" ? "tx-income" : "tx-expense");
 
     const sign = t.type === "income" ? "+" : "-";
-     const noteText = t.note ? ` · ${t.note}` : "";
-li.textContent = `${t.date} · ${t.category}${noteText} · ${sign}${formatNumber(t.amount)} KES `;
+    const noteText = t.note ? ` · ${t.note}` : "";
+    li.textContent = `${t.date} · ${t.category}${noteText} · ${sign}${formatNumber(t.amount)} KES `;
 
-    // const btn = document.createElement("button");
+    const btn = document.createElement("button");
     btn.textContent = "Delete";
     btn.addEventListener("click", () => deleteTransaction(t.id));
 
@@ -110,7 +108,6 @@ li.textContent = `${t.date} · ${t.category}${noteText} · ${sign}${formatNumber
   expensesEl.textContent = formatNumber(expenses);
   balanceEl.textContent = formatNumber(balance);
 
-  // Balance colour: green if positive or zero, orange if negative
   balanceEl.classList.toggle("positive", balance >= 0);
   balanceEl.classList.toggle("negative", balance < 0);
 }
