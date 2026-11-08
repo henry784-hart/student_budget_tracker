@@ -84,7 +84,24 @@ section {
    }
    #list li.tx-income { color: #4ade80; }
 #list li.tx-expense { color: #fb923c; }
- 
+#balance.positive { color: #4ade80; }
+#balance.negative { color: #fb923c; }
+
+#list li.empty {
+  justify-content: center;
+  border-bottom: none;
+  opacity: 0.7;
+}
+
+#add-transaction input,
+#add-transaction select {
+  color-scheme: light;
+}
+
+#add-transaction input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
 @media (min-width: 768px) {
   body {
     padding: 2rem;

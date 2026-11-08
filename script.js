@@ -17,12 +17,17 @@ const incomeEl = document.getElementById("income");
 const expensesEl = document.getElementById("expenses");
 const balanceEl = document.getElementById("balance");
 
-// 3. Save to the browser
+// 3. Format numbers with commas, e.g. 1500000 -> 1,500,000
+function formatNumber(n) {
+  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+// 4. Save to the browser
 function save() {
   localStorage.setItem("transactions", JSON.stringify(transactions));
 }
 
-// 4. Add a transaction
+// 5. Add a transaction
 function addTransaction() {
   const amount = parseFloat(amountInput.value);
   const category = categoryInput.value.trim();
@@ -48,20 +53,33 @@ function addTransaction() {
   dateInput.value = "";
 }
 
-// 5. Delete a transaction
+// 6. Delete a transaction
 function deleteTransaction(id) {
   transactions = transactions.filter((t) => t.id !== id);
   save();
   render();
 }
 
-// 6. Draw the list and the totals on the page
+// 7. Draw the list and the totals on the page
 function render() {
   list.innerHTML = "";
   let income = 0;
   let expenses = 0;
 
-  transactions.forEach((t) => {
+  // Empty message
+  if (transactions.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "No transactions yet. Add your first one above.";
+    list.appendChild(empty);
+  }
+
+  // Newest date first (ties: most recently added first)
+  const sorted = [...transactions].sort(
+    (a, b) => b.date.localeCompare(a.date) || b.id - a.id
+  );
+
+  sorted.forEach((t) => {
     if (t.type === "income") {
       income += t.amount;
     } else {
@@ -70,8 +88,9 @@ function render() {
 
     const li = document.createElement("li");
     li.classList.add(t.type === "income" ? "tx-income" : "tx-expense");
+
     const sign = t.type === "income" ? "+" : "-";
-    li.textContent = `${t.date} · ${t.category} · ${sign}${t.amount} KES `;
+    li.textContent = `${t.date} · ${t.category} · ${sign}${formatNumber(t.amount)} KES `;
 
     const btn = document.createElement("button");
     btn.textContent = "Delete";
@@ -81,11 +100,17 @@ function render() {
     list.appendChild(li);
   });
 
-  incomeEl.textContent = income;
-  expensesEl.textContent = expenses;
-  balanceEl.textContent = income - expenses;
+  const balance = income - expenses;
+
+  incomeEl.textContent = formatNumber(income);
+  expensesEl.textContent = formatNumber(expenses);
+  balanceEl.textContent = formatNumber(balance);
+
+  // Balance colour: green if positive or zero, orange if negative
+  balanceEl.classList.toggle("positive", balance >= 0);
+  balanceEl.classList.toggle("negative", balance < 0);
 }
 
-// 7. Connect the button, then draw the page once on load
+// 8. Connect the button, then draw the page once on load
 addBtn.addEventListener("click", addTransaction);
 render();
