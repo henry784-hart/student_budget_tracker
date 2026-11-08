@@ -93,7 +93,7 @@ function setBudget() {
 function renderBudget() {
   if (monthlyBudget <= 0) {
     budgetStatus.textContent = "No limit set yet. Enter one above.";
-    budgetStatus.className = "";
+   budgetStatus.className = state;
     budgetFill.style.width = "0%";
     budgetFill.className = "bd-fill";
     return;

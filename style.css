@@ -189,8 +189,7 @@
 #budget-fill.ok { background: #4ade80; }
 #budget-fill.warn { background: #fb923c; }
 #budget-fill.over { background: #ef4444; }
-
-#budget-status.over { color: #fb923c; }
+#budget-status.warn { color: #fb923c; } */
 
  @media (min-width: 768px) {
    body {
