@@ -231,4 +231,4 @@ budgetBtn.addEventListener("click", setBudget);
 if (monthlyBudget > 0) {
   budgetInput.value = monthlyBudget;
 }
-// // render();
+render();
