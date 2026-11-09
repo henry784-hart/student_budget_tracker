@@ -22,6 +22,7 @@ const typeInput = document.getElementById("type");
 const categoryInput = document.getElementById("category");
 const dateInput = document.getElementById("date");
 const noteInput = document.getElementById("note");
+const transactionForm = document.getElementById("transaction-form");
 const addBtn = document.getElementById("add-btn");
 const cancelBtn = document.getElementById("cancel-btn");
 const categoryList = document.getElementById("category-list");
@@ -34,6 +35,10 @@ const budgetInput = document.getElementById("budget-input");
 const budgetBtn = document.getElementById("budget-btn");
 const budgetStatus = document.getElementById("budget-status");
 const budgetFill = document.getElementById("budget-fill");
+
+function getTodayISODate() {
+  return new Date().toISOString().split("T")[0];
+}
 
 // 3. Format numbers with commas
 function formatNumber(n) {
@@ -50,7 +55,7 @@ function clearForm() {
   amountInput.value = "";
   categoryInput.value = "";
   noteInput.value = "";
-  dateInput.value = "";
+  dateInput.value = getTodayISODate();
 }
 
 function exitEditMode() {
@@ -243,8 +248,8 @@ function renderCategorySuggestions() {
   const all = [...transactions.map((t) => t.category), ...defaults];
   const seen = new Set();
 
-  all.forEach((c) => {
-    const name = c.trim();
+  all.forEach((value) => {
+    const name = String(value || "").trim();
     const key = name.toLowerCase();
     if (name === "" || seen.has(key)) return;
     seen.add(key);
@@ -326,13 +331,23 @@ function render() {
 }
 
 // 14. Connect the buttons, then draw the page once on load
-addBtn.addEventListener("click", addTransaction);
+transactionForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  addTransaction();
+});
+
 cancelBtn.addEventListener("click", () => {
   exitEditMode();
   render();
 });
 budgetBtn.addEventListener("click", setBudget);
+
 if (monthlyBudget > 0) {
   budgetInput.value = monthlyBudget;
 }
+
+if (!dateInput.value) {
+  dateInput.value = getTodayISODate();
+}
+
 render();

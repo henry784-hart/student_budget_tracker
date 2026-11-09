@@ -18,17 +18,19 @@
 
     <section id="add-transaction">
       <h2>Add transaction</h2>
-      <input type="number" id="amount" placeholder="Amount (KES)">
-      <select id="type">
-        <option value="expense">Expense</option>
-        <option value="income">Income</option>
-      </select>
-      <input type="text" id="category" list="category-list" placeholder="Category e.g. Food">
-      <datalist id="category-list"></datalist>
-      <input type="date" id="date">
-      <input type="text" id="note" placeholder="Note (optional) e.g. lunch at campus">
-      <button id="add-btn" type="button">Add</button>
-      <button id="cancel-btn" type="button" style="display: none">Cancel edit</button>
+      <form id="transaction-form" novalidate>
+        <input type="number" id="amount" placeholder="Amount (KES)" min="0.01" step="0.01" required>
+        <select id="type">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+        <input type="text" id="category" list="category-list" placeholder="Category e.g. Food" required>
+        <datalist id="category-list"></datalist>
+        <input type="date" id="date" required>
+        <input type="text" id="note" placeholder="Note (optional) e.g. lunch at campus">
+        <button id="add-btn" type="submit">Add</button>
+        <button id="cancel-btn" type="button" style="display: none">Cancel edit</button>
+      </form>
     </section>
 
     <section id="breakdown">
@@ -39,8 +41,8 @@
     <section id="budget">
       <h2>Monthly budget</h2>
       <div id="budget-form">
-        <input type="number" id="budget-input" placeholder="Monthly limit (KES)">
-        <button id="budget-btn">Set limit</button>
+        <input type="number" id="budget-input" placeholder="Monthly limit (KES)" min="0.01" step="0.01">
+        <button id="budget-btn" type="button">Set limit</button>
       </div>
       <p id="budget-status">No limit set yet.</p>
       <div class="bd-bar"><div id="budget-fill" class="bd-fill"></div></div>

@@ -36,13 +36,17 @@
    font-weight: bold;
  }
 
+ #transaction-form {
+   display: grid;
+   gap: 0.6rem;
+ }
+
  #add-transaction input,
  #add-transaction select,
  #add-transaction button {
    display: block;
    width: 100%;
    padding: 0.7rem;
-   margin-bottom: 0.6rem;
    font-size: 1rem;
    border: 1px solid #ccc;
    border-radius: 6px;
@@ -151,11 +155,6 @@
    text-align: center;
  }
 
- #add-transaction input,
- #add-transaction select {
-   color-scheme: light;
- }
-
  #budget-form {
    display: flex;
    gap: 0.6rem;
@@ -207,24 +206,25 @@
  #budget-fill.over {
    background: #ef4444;
  }
+
  .actions {
-  display: flex;
-  gap: 0.5rem;
-}
+   display: flex;
+   gap: 0.5rem;
+ }
 
-#list li button.edit-btn {
-  background: #2563eb;
-}
+ #list li button.edit-btn {
+   background: #2563eb;
+ }
 
-#list li.editing {
-  outline: 2px solid #00e5c3;
-  outline-offset: 4px;
-  border-radius: 6px;
-}
+ #list li.editing {
+   outline: 2px solid #00e5c3;
+   outline-offset: 4px;
+   border-radius: 6px;
+ }
 
-#add-transaction #cancel-btn {
-  background: #64748b;
-}
+ #cancel-btn {
+   background: #64748b;
+ }
 
  @media (min-width: 768px) {
    body {
@@ -254,13 +254,24 @@
      margin: 0;
    }
 
+   #transaction-form {
+     grid-column: 1 / -1;
+     grid-template-columns: repeat(2, 1fr);
+   }
+
    #add-transaction input,
    #add-transaction select,
    #add-transaction button {
      margin-bottom: 0;
    }
 
-   #add-transaction button {
+   #category,
+   #note {
+     grid-column: 1 / -1;
+   }
+
+   #add-btn,
+   #cancel-btn {
      grid-column: 1 / -1;
    }
  }
