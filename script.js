@@ -22,6 +22,7 @@ const typeInput = document.getElementById("type");
 const categoryInput = document.getElementById("category");
 const dateInput = document.getElementById("date");
 const noteInput = document.getElementById("note");
+const transactionForm = document.getElementById("transaction-form");
 const addBtn = document.getElementById("add-btn");
 const cancelBtn = document.getElementById("cancel-btn");
 const categoryList = document.getElementById("category-list");
@@ -29,15 +30,36 @@ const list = document.getElementById("list");
 const incomeEl = document.getElementById("income");
 const expensesEl = document.getElementById("expenses");
 const balanceEl = document.getElementById("balance");
+const monthlyIncomeEl = document.getElementById("monthly-income");
+const monthlyExpensesEl = document.getElementById("monthly-expenses");
+const monthlyBalanceEl = document.getElementById("monthly-balance");
+const monthLabelEl = document.getElementById("month-label");
 const breakdownList = document.getElementById("breakdown-list");
 const budgetInput = document.getElementById("budget-input");
 const budgetBtn = document.getElementById("budget-btn");
 const budgetStatus = document.getElementById("budget-status");
 const budgetFill = document.getElementById("budget-fill");
 
+function getTodayISODate() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function getCurrentMonthKey() {
+  const now = new Date();
+  return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+}
+
+function getMonthLabel(date = new Date()) {
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
+}
+
 // 3. Format numbers with commas
 function formatNumber(n) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+function formatCurrency(n) {
+  return `KES ${formatNumber(n)}`;
 }
 
 // 4. Save transactions to the browser
@@ -50,7 +72,7 @@ function clearForm() {
   amountInput.value = "";
   categoryInput.value = "";
   noteInput.value = "";
-  dateInput.value = "";
+  dateInput.value = getTodayISODate();
 }
 
 function exitEditMode() {
@@ -141,6 +163,34 @@ function setBudget() {
   render();
 }
 
+function renderMonthlySummary() {
+  const now = new Date();
+  const monthKey = getCurrentMonthKey();
+  const monthLabel = getMonthLabel(now);
+  monthLabelEl.textContent = monthLabel;
+
+  let income = 0;
+  let expenses = 0;
+
+  transactions.forEach((t) => {
+    if (!t.date || !t.date.startsWith(monthKey)) return;
+
+    if (t.type === "income") {
+      income += t.amount;
+    } else if (t.type === "expense") {
+      expenses += t.amount;
+    }
+  });
+
+  const balance = income - expenses;
+
+  monthlyIncomeEl.textContent = formatCurrency(income);
+  monthlyExpensesEl.textContent = formatCurrency(expenses);
+  monthlyBalanceEl.textContent = formatCurrency(balance);
+  monthlyBalanceEl.parentElement.classList.toggle("positive", balance >= 0);
+  monthlyBalanceEl.parentElement.classList.toggle("negative", balance < 0);
+}
+
 // 10. Show spending against the monthly limit (current month only)
 function renderBudget() {
   if (monthlyBudget <= 0) {
@@ -151,9 +201,7 @@ function renderBudget() {
     return;
   }
 
-  const now = new Date();
-  const monthKey =
-    now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+  const monthKey = getCurrentMonthKey();
 
   let spent = 0;
   transactions.forEach((t) => {
@@ -243,8 +291,8 @@ function renderCategorySuggestions() {
   const all = [...transactions.map((t) => t.category), ...defaults];
   const seen = new Set();
 
-  all.forEach((c) => {
-    const name = c.trim();
+  all.forEach((value) => {
+    const name = String(value || "").trim();
     const key = name.toLowerCase();
     if (name === "" || seen.has(key)) return;
     seen.add(key);
@@ -320,19 +368,30 @@ function render() {
   balanceEl.classList.toggle("positive", balance >= 0);
   balanceEl.classList.toggle("negative", balance < 0);
 
+  renderMonthlySummary();
   renderBreakdown();
   renderBudget();
   renderCategorySuggestions();
 }
 
 // 14. Connect the buttons, then draw the page once on load
-addBtn.addEventListener("click", addTransaction);
+transactionForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  addTransaction();
+});
+
 cancelBtn.addEventListener("click", () => {
   exitEditMode();
   render();
 });
 budgetBtn.addEventListener("click", setBudget);
+
 if (monthlyBudget > 0) {
   budgetInput.value = monthlyBudget;
 }
+
+if (!dateInput.value) {
+  dateInput.value = getTodayISODate();
+}
+
 render();
