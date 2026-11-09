@@ -6,12 +6,13 @@ see their balance, and keep track of where their money goes.
 **Live app:** https://henry784-hart.github.io/student_budget_tracker/
 
 ## Features
-- Add income and expense transactions
+- Add, edit and delete income and expense transactions
 - Optional note on each transaction
+- Category suggestions while typing
 - See total income, expenses and balance
 - Spending breakdown by category
+- Monthly budget limit with progress bar and warnings
 - Newest transactions shown first
-- Delete transactions
 - Data is saved in your browser
 - Works on phones, tablets and laptops
 
@@ -26,7 +27,8 @@ HTML, CSS and JavaScript
 ## Roadmap
 - [x] Optional note on each transaction
 - [x] Spending breakdown by category
-- [ ] Edit transactions
-- [ ] Monthly budgets
+- [x] Monthly budgets
+- [x] Edit transactions
+- [x] Category suggestions
 - [ ] Backend and database (Python + Flask)
 - [ ] M-Pesa message parser
