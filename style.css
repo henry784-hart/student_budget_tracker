@@ -36,6 +36,64 @@
    font-weight: bold;
  }
 
+ #monthly-summary {
+   padding-top: 0.8rem;
+ }
+
+ .month-label {
+   margin: 0 0 0.8rem;
+   opacity: 0.8;
+   font-size: 0.95rem;
+ }
+
+ .monthly-cards {
+   display: grid;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+   gap: 0.75rem;
+ }
+
+ .monthly-card {
+   background: rgba(255, 255, 255, 0.08);
+   border-radius: 10px;
+   padding: 0.8rem 0.6rem;
+   display: flex;
+   flex-direction: column;
+   gap: 0.35rem;
+   align-items: center;
+   text-align: center;
+ }
+
+ .monthly-card .label {
+   font-size: 0.8rem;
+   opacity: 0.8;
+   text-transform: uppercase;
+   letter-spacing: 0.04em;
+ }
+
+ .monthly-card strong {
+   font-size: 0.95rem;
+ }
+
+ .monthly-card.income strong {
+   color: #4ade80;
+ }
+
+ .monthly-card.expense strong {
+   color: #fb923c;
+ }
+
+ .monthly-card.balance strong {
+   color: #00fad4;
+ }
+
+ .monthly-card.positive strong {
+   color: #4ade80;
+ }
+
+ .monthly-card.negative strong {
+   color: #fb923c;
+ }
+
  #transaction-form {
    display: grid;
    gap: 0.6rem;
@@ -241,6 +299,10 @@
 
    #summary {
      font-size: 1.2rem;
+   }
+
+   .monthly-card strong {
+     font-size: 1.1rem;
    }
 
    #add-transaction {
