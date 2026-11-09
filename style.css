@@ -1,174 +1,474 @@
- * {
-   box-sizing: border-box;
- }
+// Load browser data first so it remains available if the API is offline.
+function loadLocalTransactions() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("transactions"));
+    return Array.isArray(saved) ? saved : [];
+  } catch (error) {
+    return [];
+  }
+}
 
- body {
-   font-family: system-ui, sans-serif;
-   background: #153552;
-   color: #00fad4;
-   margin: 0;
-   padding: 1rem;
- }
+let transactions = loadLocalTransactions();
+let monthlyBudget = 0;
+try {
+  monthlyBudget = parseFloat(localStorage.getItem("monthlyBudget")) || 0;
+} catch (error) {
+  monthlyBudget = 0;
+}
 
- main { max-width: 600px; margin: 0 auto; }
- h1 { text-align: center; font-size: 1.5rem; }
- section {
-   background: rgba(41, 139, 163, 0.25);
-   border-radius: 10px;
-   padding: 1rem;
-   margin-bottom: 1rem;
-   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
- }
+const API_BASE_URL = window.BUDGET_API_URL || "http://127.0.0.1:5000/api";
+let editingId = null;
+let currentUser = null;
+let authMode = "login";
 
- .app-status {
-   text-align: center;
-   font-size: 0.9rem;
-   margin: 0 0 1rem;
-   color: #cbd5e1;
- }
- .app-status.connected { color: #4ade80; }
- .app-status.offline { color: #fbbf24; }
+const amountInput = document.getElementById("amount");
+const typeInput = document.getElementById("type");
+const categoryInput = document.getElementById("category");
+const dateInput = document.getElementById("date");
+const noteInput = document.getElementById("note");
+const transactionForm = document.getElementById("transaction-form");
+const addBtn = document.getElementById("add-btn");
+const cancelBtn = document.getElementById("cancel-btn");
+const categoryList = document.getElementById("category-list");
+const list = document.getElementById("list");
+const incomeEl = document.getElementById("income");
+const expensesEl = document.getElementById("expenses");
+const balanceEl = document.getElementById("balance");
+const monthlyIncomeEl = document.getElementById("monthly-income");
+const monthlyExpensesEl = document.getElementById("monthly-expenses");
+const monthlyBalanceEl = document.getElementById("monthly-balance");
+const monthLabelEl = document.getElementById("month-label");
+const breakdownList = document.getElementById("breakdown-list");
+const budgetInput = document.getElementById("budget-input");
+const budgetBtn = document.getElementById("budget-btn");
+const budgetStatus = document.getElementById("budget-status");
+const budgetFill = document.getElementById("budget-fill");
+const authPanel = document.getElementById("auth-panel");
+const appShell = document.getElementById("app-shell");
+const authForm = document.getElementById("auth-form");
+const authEmailInput = document.getElementById("auth-email");
+const authPasswordInput = document.getElementById("auth-password");
+const authMessage = document.getElementById("auth-message");
+const loginBtn = document.getElementById("login-btn");
+const registerBtn = document.getElementById("register-btn");
+const logoutBtn = document.getElementById("logout-btn");
+const userBanner = document.getElementById("user-banner");
 
- #summary {
-   display: grid;
-   grid-template-columns: repeat(3, 1fr);
-   gap: 0.5rem;
-   text-align: center;
-   font-weight: bold;
- }
- #monthly-summary { padding-top: 0.8rem; }
- .month-label { margin: 0 0 0.8rem; opacity: 0.8; font-size: 0.95rem; }
- .monthly-cards {
-   display: grid;
-   grid-template-columns: repeat(3, minmax(0, 1fr));
-   gap: 0.75rem;
- }
- .monthly-card {
-   background: rgba(255, 255, 255, 0.08);
-   border-radius: 10px;
-   padding: 0.8rem 0.6rem;
-   display: flex;
-   flex-direction: column;
-   gap: 0.35rem;
-   align-items: center;
-   text-align: center;
- }
- .monthly-card .label {
-   font-size: 0.8rem;
-   opacity: 0.8;
-   text-transform: uppercase;
-   letter-spacing: 0.04em;
- }
- .monthly-card strong { font-size: 0.95rem; }
- .monthly-card.income strong { color: #4ade80; }
- .monthly-card.expense strong { color: #fb923c; }
- .monthly-card.balance strong { color: #00fad4; }
- .monthly-card.positive strong { color: #4ade80; }
- .monthly-card.negative strong { color: #fb923c; }
+async function apiRequest(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    credentials: "include",
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers,
+    },
+  });
 
- #transaction-form { display: grid; gap: 0.6rem; }
- #add-transaction input,
- #add-transaction select,
- #add-transaction button {
-   display: block;
-   width: 100%;
-   padding: 0.7rem;
-   font-size: 1rem;
-   border: 1px solid #ccc;
-   border-radius: 6px;
- }
- #add-transaction button {
-   background: #1a7f4b;
-   color: white;
-   border: none;
-   cursor: pointer;
- }
- #add-transaction input,
- #add-transaction select { background: white; color: #222; color-scheme: light; }
- #add-transaction input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || `API request failed (${response.status}).`);
+  }
+  return data;
+}
 
- #list, #breakdown-list { list-style: none; padding: 0; margin: 0; }
- #list li {
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
-   gap: 0.75rem;
-   padding: 0.6rem 0;
-   border-bottom: 1px solid #eee;
- }
- #list li span { overflow-wrap: anywhere; }
- #list li button {
-   background: #c0392b;
-   color: white;
-   border: none;
-   border-radius: 6px;
-   padding: 0.3rem 0.7rem;
-   cursor: pointer;
- }
- #list li.tx-income { color: #4ade80; }
- #list li.tx-expense { color: #fb923c; }
- #balance.positive { color: #4ade80; }
- #balance.negative { color: #fb923c; }
- #list li.empty { justify-content: center; border-bottom: none; opacity: 0.7; }
- .actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
- #list li button.edit-btn { background: #2563eb; }
- #list li.editing { outline: 2px solid #00e5c3; outline-offset: 4px; border-radius: 6px; }
- #cancel-btn { background: #64748b; }
+function hideApp() {
+  authPanel.classList.remove("hidden");
+  appShell.classList.add("hidden");
+  logoutBtn.classList.add("hidden");
+  userBanner.textContent = "";
+}
 
- #breakdown-list li { margin-bottom: 0.9rem; }
- .bd-label { margin-bottom: 0.3rem; }
- .bd-bar {
-   height: 10px;
-   background: rgba(255, 255, 255, 0.15);
-   border-radius: 6px;
-   overflow: hidden;
- }
- .bd-fill { height: 100%; background: #fb923c; border-radius: 6px; }
- #breakdown-list li.bd-empty { opacity: 0.7; text-align: center; }
+function showApp() {
+  authPanel.classList.add("hidden");
+  appShell.classList.remove("hidden");
+  logoutBtn.classList.remove("hidden");
+  userBanner.textContent = `Logged in as ${currentUser.email}`;
+}
 
- #budget-form { display: flex; gap: 0.6rem; margin-bottom: 0.8rem; }
- #budget-form input {
-   flex: 1;
-   min-width: 0;
-   padding: 0.7rem;
-   font-size: 1rem;
-   border: 1px solid #ccc;
-   border-radius: 6px;
-   background: white;
-   color: #222;
-   color-scheme: light;
- }
- #budget-form button {
-   padding: 0.7rem 1rem;
-   font-size: 1rem;
-   background: #1a7f4b;
-   color: white;
-   border: none;
-   border-radius: 6px;
-   cursor: pointer;
- }
- #budget-status { margin: 0 0 0.6rem; }
- #budget-status.warn { color: #fb923c; }
- #budget-status.over { color: #f87171; font-weight: bold; }
- #budget-fill.ok { background: #4ade80; }
- #budget-fill.warn { background: #fb923c; }
- #budget-fill.over { background: #ef4444; }
+function showAuthMessage(message, isError = false) {
+  authMessage.textContent = message;
+  authMessage.classList.toggle("error", isError);
+}
 
- @media (min-width: 768px) {
-   body { padding: 2rem; }
-   main { max-width: 900px; }
-   h1 { font-size: 2rem; }
-   #summary { font-size: 1.2rem; }
-   .monthly-card strong { font-size: 1.1rem; }
-   #add-transaction {
-     display: grid;
-     grid-template-columns: repeat(2, 1fr);
-     gap: 0.8rem;
-   }
-   #add-transaction h2 { grid-column: 1 / -1; margin: 0; }
-   #transaction-form {
-     grid-column: 1 / -1;
-     grid-template-columns: repeat(2, 1fr);
-   }
-   #category, #note, #add-btn, #cancel-btn { grid-column: 1 / -1; }
- }
+async function loadUserSession() {
+  try {
+    currentUser = await apiRequest("/auth/me");
+    showApp();
+    await initializeTransactions();
+  } catch (error) {
+    currentUser = null;
+    hideApp();
+    showAuthMessage("Log in to save your transactions securely.");
+  }
+}
+
+async function initializeTransactions() {
+  try {
+    const remoteTransactions = await apiRequest("/transactions");
+    transactions = remoteTransactions;
+    localStorage.setItem("transactions", JSON.stringify(transactions));
+    render();
+  } catch (error) {
+    transactions = loadLocalTransactions();
+    render();
+    showAuthMessage(`API unavailable: ${error.message}`, true);
+  }
+}
+
+function getTodayISODate() {
+  const now = new Date();
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+function getCurrentMonthKey() {
+  const now = new Date();
+  return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+}
+
+function getMonthLabel(date = new Date()) {
+  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
+}
+
+function formatNumber(number) {
+  return Number(number || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+function formatCurrency(number) {
+  return `KES ${formatNumber(number)}`;
+}
+
+function clearForm() {
+  amountInput.value = "";
+  categoryInput.value = "";
+  noteInput.value = "";
+  dateInput.value = getTodayISODate();
+}
+
+function exitEditMode() {
+  editingId = null;
+  addBtn.textContent = "Add";
+  cancelBtn.style.display = "none";
+  typeInput.value = "expense";
+  clearForm();
+}
+
+async function addTransaction() {
+  const amount = Number(amountInput.value);
+  const category = categoryInput.value.trim();
+
+  if (!Number.isFinite(amount) || amount <= 0 || !category || !dateInput.value) {
+    alert("Please enter a valid amount, category and date.");
+    return;
+  }
+
+  const payload = {
+    amount,
+    type: typeInput.value,
+    category,
+    note: noteInput.value.trim(),
+    date: dateInput.value,
+  };
+
+  try {
+    if (editingId !== null) {
+      const updated = await apiRequest(`/transactions/${editingId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      transactions = transactions.map((item) => item.id === editingId ? updated : item);
+      exitEditMode();
+    } else {
+      const created = await apiRequest("/transactions", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      transactions.push(created);
+      clearForm();
+    }
+    localStorage.setItem("transactions", JSON.stringify(transactions));
+    render();
+  } catch (error) {
+    alert(`Could not save the transaction: ${error.message}`);
+  }
+}
+
+function startEdit(id) {
+  const transaction = transactions.find((item) => item.id === id);
+  if (!transaction) return;
+
+  editingId = id;
+  amountInput.value = transaction.amount;
+  typeInput.value = transaction.type;
+  categoryInput.value = transaction.category;
+  noteInput.value = transaction.note || "";
+  dateInput.value = transaction.date;
+  addBtn.textContent = "Save changes";
+  cancelBtn.style.display = "block";
+
+  render();
+  amountInput.scrollIntoView({ behavior: "smooth", block: "center" });
+  amountInput.focus();
+}
+
+async function deleteTransaction(id) {
+  try {
+    await apiRequest(`/transactions/${id}`, { method: "DELETE" });
+    if (editingId === id) exitEditMode();
+    transactions = transactions.filter((transaction) => transaction.id !== id);
+    localStorage.setItem("transactions", JSON.stringify(transactions));
+    render();
+  } catch (error) {
+    alert(`Could not delete the transaction: ${error.message}`);
+  }
+}
+
+function setBudget() {
+  const value = Number(budgetInput.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    alert("Please enter a monthly limit greater than 0.");
+    return;
+  }
+  monthlyBudget = value;
+  try {
+    localStorage.setItem("monthlyBudget", String(value));
+  } catch (error) {
+    alert("The budget could not be saved in this browser.");
+  }
+  render();
+}
+
+function renderMonthlySummary() {
+  const monthKey = getCurrentMonthKey();
+  monthLabelEl.textContent = getMonthLabel();
+
+  let income = 0;
+  let expenses = 0;
+
+  transactions.forEach((transaction) => {
+    if (!transaction.date || !transaction.date.startsWith(monthKey)) return;
+    if (transaction.type === "income") income += Number(transaction.amount) || 0;
+    if (transaction.type === "expense") expenses += Number(transaction.amount) || 0;
+  });
+
+  const balance = income - expenses;
+  monthlyIncomeEl.textContent = formatCurrency(income);
+  monthlyExpensesEl.textContent = formatCurrency(expenses);
+  monthlyBalanceEl.textContent = formatCurrency(balance);
+  monthlyBalanceEl.parentElement.classList.toggle("positive", balance >= 0);
+  monthlyBalanceEl.parentElement.classList.toggle("negative", balance < 0);
+}
+
+function renderBudget() {
+  if (monthlyBudget <= 0) {
+    budgetStatus.textContent = "No limit set yet. Enter one above.";
+    budgetStatus.className = "";
+    budgetFill.style.width = "0%";
+    budgetFill.className = "bd-fill";
+    return;
+  }
+
+  const monthKey = getCurrentMonthKey();
+  const spent = transactions.reduce((total, transaction) => {
+    return transaction.type === "expense" && transaction.date?.startsWith(monthKey)
+      ? total + (Number(transaction.amount) || 0)
+      : total;
+  }, 0);
+
+  const ratio = spent / monthlyBudget;
+  const left = monthlyBudget - spent;
+  const state = ratio > 1 ? "over" : ratio >= 0.8 ? "warn" : "ok";
+  if (left >= 0) {
+    budgetStatus.textContent = `Spent ${formatNumber(spent)} of ${formatNumber(monthlyBudget)} KES this month · ${formatNumber(left)} KES left (${Math.round(ratio * 100)}%)`;
+  } else {
+    budgetStatus.textContent = `Over budget by ${formatNumber(-left)} KES! Spent ${formatNumber(spent)} of ${formatNumber(monthlyBudget)} KES this month.`;
+  }
+  budgetStatus.className = state;
+  budgetFill.style.width = `${Math.min(100, ratio * 100)}%`;
+  budgetFill.className = `bd-fill ${state}`;
+}
+
+function renderBreakdown() {
+  breakdownList.innerHTML = "";
+  const totals = new Map();
+
+  transactions.forEach((transaction) => {
+    if (transaction.type !== "expense") return;
+    const name = String(transaction.category || "").trim();
+    const key = name.toLowerCase();
+    if (!key) return;
+    const previous = totals.get(key) || { name, amount: 0 };
+    previous.amount += Number(transaction.amount) || 0;
+    totals.set(key, previous);
+  });
+
+  const entries = [...totals.values()].sort((a, b) => b.amount - a.amount);
+  if (!entries.length) {
+    const empty = document.createElement("li");
+    empty.className = "bd-empty";
+    empty.textContent = "No expenses yet.";
+    breakdownList.appendChild(empty);
+    return;
+  }
+
+  const totalSpent = entries.reduce((sum, entry) => sum + entry.amount, 0);
+  entries.forEach(({ name, amount }) => {
+    const raw = totalSpent ? (amount / totalSpent) * 100 : 0;
+    const title = name.charAt(0).toUpperCase() + name.slice(1);
+    const li = document.createElement("li");
+    const label = document.createElement("div");
+    label.className = "bd-label";
+    label.textContent = `${title} · ${formatNumber(amount)} KES (${raw < 1 ? "<1%" : `${Math.round(raw)}%`})`;
+    const bar = document.createElement("div");
+    bar.className = "bd-bar";
+    const fill = document.createElement("div");
+    fill.className = "bd-fill";
+    fill.style.width = `${Math.max(raw, 1)}%`;
+    bar.appendChild(fill);
+    li.append(label, bar);
+    breakdownList.appendChild(li);
+  });
+}
+
+function renderCategorySuggestions() {
+  categoryList.innerHTML = "";
+  const defaults = ["Food", "Transport", "Airtime/Data", "Rent/Hostel", "Books/Stationery", "Fees", "Entertainment", "Other"];
+  const seen = new Set();
+
+  [...transactions.map((transaction) => transaction.category), ...defaults].forEach((value) => {
+    const name = String(value || "").trim();
+    const key = name.toLowerCase();
+    if (!name || seen.has(key)) return;
+    seen.add(key);
+    const option = document.createElement("option");
+    option.value = name;
+    categoryList.appendChild(option);
+  });
+}
+
+function render() {
+  list.innerHTML = "";
+  let income = 0;
+  let expenses = 0;
+
+  if (!transactions.length) {
+    const empty = document.createElement("li");
+    empty.className = "empty";
+    empty.textContent = "No transactions yet. Add your first one above.";
+    list.appendChild(empty);
+  }
+
+  const sorted = [...transactions].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+  sorted.forEach((transaction) => {
+    const amount = Number(transaction.amount) || 0;
+    if (transaction.type === "income") income += amount;
+    else expenses += amount;
+
+    const li = document.createElement("li");
+    li.classList.add(transaction.type === "income" ? "tx-income" : "tx-expense");
+    if (transaction.id === editingId) li.classList.add("editing");
+
+    const sign = transaction.type === "income" ? "+" : "-";
+    const noteText = transaction.note ? ` · ${transaction.note}` : "";
+    const text = document.createElement("span");
+    text.textContent = `${transaction.date} · ${transaction.category}${noteText} · ${sign}${formatNumber(amount)} KES`;
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.className = "edit-btn";
+    editBtn.type = "button";
+    editBtn.addEventListener("click", () => startEdit(transaction.id));
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.type = "button";
+    deleteBtn.addEventListener("click", () => deleteTransaction(transaction.id));
+
+    actions.append(editBtn, deleteBtn);
+    li.append(text, actions);
+    list.appendChild(li);
+  });
+
+  const balance = income - expenses;
+  incomeEl.textContent = formatNumber(income);
+  expensesEl.textContent = formatNumber(expenses);
+  balanceEl.textContent = formatNumber(balance);
+  balanceEl.classList.toggle("positive", balance >= 0);
+  balanceEl.classList.toggle("negative", balance < 0);
+
+  renderMonthlySummary();
+  renderBreakdown();
+  renderBudget();
+  renderCategorySuggestions();
+}
+
+transactionForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  addTransaction();
+});
+
+cancelBtn.addEventListener("click", () => {
+  exitEditMode();
+  render();
+});
+
+budgetBtn.addEventListener("click", setBudget);
+loginBtn.addEventListener("click", async (event) => {
+  event.preventDefault();
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value.trim();
+
+  try {
+    currentUser = await apiRequest("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    authEmailInput.value = "";
+    authPasswordInput.value = "";
+    showAuthMessage(`Welcome back, ${currentUser.email}!`);
+    showApp();
+    await initializeTransactions();
+  } catch (error) {
+    showAuthMessage(error.message, true);
+  }
+});
+
+registerBtn.addEventListener("click", async () => {
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value.trim();
+
+  try {
+    currentUser = await apiRequest("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    authEmailInput.value = "";
+    authPasswordInput.value = "";
+    showAuthMessage(`Account created for ${currentUser.email}.`);
+    showApp();
+    await initializeTransactions();
+  } catch (error) {
+    showAuthMessage(error.message, true);
+  }
+});
+
+logoutBtn.addEventListener("click", async () => {
+  try {
+    await apiRequest("/auth/logout", { method: "POST" });
+  } catch (error) {
+    console.warn(error);
+  }
+
+  currentUser = null;
+  hideApp();
+  showAuthMessage("Logged out successfully.");
+  transactions = [];
+  render();
+});
+
+if (monthlyBudget > 0) budgetInput.value = monthlyBudget;
+if (!dateInput.value) dateInput.value = getTodayISODate();
+loadUserSession();

@@ -8,52 +8,79 @@
 </head>
 <body>
   <main>
-    <h1>Student Budget Tracker</h1>
-    <p id="app-status" class="app-status" role="status" aria-live="polite">Connecting to the Flask API…</p>
+    <section id="auth-panel" class="auth-panel">
+      <div class="auth-card">
+        <h2>Student Budget Tracker</h2>
+        <p id="auth-message" class="auth-message">Log in to save your transactions securely.</p>
 
-    <section id="summary">
-      <div>Income: <span id="income">0</span></div>
-      <div>Expenses: <span id="expenses">0</span></div>
-      <div>Balance: <span id="balance">0</span></div>
-    </section>
+        <form id="auth-form">
+          <label>
+            Email
+            <input id="auth-email" type="email" placeholder="you@example.com" required>
+          </label>
+          <label>
+            Password
+            <input id="auth-password" type="password" placeholder="At least 6 characters" required>
+          </label>
 
-    <section id="monthly-summary">
-      <h2>This month</h2>
-      <p id="month-label" class="month-label"></p>
-      <div class="monthly-cards">
-        <div class="monthly-card income"><span class="label">Income</span><strong id="monthly-income">KES 0</strong></div>
-        <div class="monthly-card expense"><span class="label">Expenses</span><strong id="monthly-expenses">KES 0</strong></div>
-        <div class="monthly-card balance"><span class="label">Balance</span><strong id="monthly-balance">KES 0</strong></div>
+          <div class="auth-actions">
+            <button id="login-btn" type="submit">Log in</button>
+            <button id="register-btn" type="button" class="secondary">Create account</button>
+          </div>
+        </form>
+
+        <button id="logout-btn" type="button" class="logout hidden">Log out</button>
       </div>
     </section>
 
-    <section id="add-transaction">
-      <h2>Add transaction</h2>
-      <form id="transaction-form" novalidate>
-        <input type="number" id="amount" placeholder="Amount (KES)" min="0.01" step="0.01" required>
-        <select id="type"><option value="expense">Expense</option><option value="income">Income</option></select>
-        <input type="text" id="category" list="category-list" placeholder="Category e.g. Food" required>
-        <datalist id="category-list"></datalist>
-        <input type="date" id="date" required>
-        <input type="text" id="note" placeholder="Note (optional) e.g. lunch at campus">
-        <button id="add-btn" type="submit">Add</button>
-        <button id="cancel-btn" type="button" style="display: none">Cancel edit</button>
-      </form>
-    </section>
+    <div id="app-shell" class="hidden">
+      <h1>Student Budget Tracker</h1>
+      <p id="user-banner" class="user-banner"></p>
 
-    <section id="breakdown"><h2>Spending by category</h2><ul id="breakdown-list"></ul></section>
+      <section id="summary">
+        <div>Income: <span id="income">0</span></div>
+        <div>Expenses: <span id="expenses">0</span></div>
+        <div>Balance: <span id="balance">0</span></div>
+      </section>
 
-    <section id="budget">
-      <h2>Monthly budget</h2>
-      <div id="budget-form">
-        <input type="number" id="budget-input" placeholder="Monthly limit (KES)" min="0.01" step="0.01">
-        <button id="budget-btn" type="button">Set limit</button>
-      </div>
-      <p id="budget-status">No limit set yet.</p>
-      <div class="bd-bar"><div id="budget-fill" class="bd-fill"></div></div>
-    </section>
+      <section id="monthly-summary">
+        <h2>This month</h2>
+        <p id="month-label" class="month-label"></p>
+        <div class="monthly-cards">
+          <div class="monthly-card income"><span class="label">Income</span><strong id="monthly-income">KES 0</strong></div>
+          <div class="monthly-card expense"><span class="label">Expenses</span><strong id="monthly-expenses">KES 0</strong></div>
+          <div class="monthly-card balance"><span class="label">Balance</span><strong id="monthly-balance">KES 0</strong></div>
+        </div>
+      </section>
 
-    <section id="transactions"><h2>Transactions</h2><ul id="list"></ul></section>
+      <section id="add-transaction">
+        <h2>Add transaction</h2>
+        <form id="transaction-form" novalidate>
+          <input type="number" id="amount" placeholder="Amount (KES)" min="0.01" step="0.01" required>
+          <select id="type"><option value="expense">Expense</option><option value="income">Income</option></select>
+          <input type="text" id="category" list="category-list" placeholder="Category e.g. Food" required>
+          <datalist id="category-list"></datalist>
+          <input type="date" id="date" required>
+          <input type="text" id="note" placeholder="Note (optional) e.g. lunch at campus">
+          <button id="add-btn" type="submit">Add</button>
+          <button id="cancel-btn" type="button" style="display: none">Cancel edit</button>
+        </form>
+      </section>
+
+      <section id="breakdown"><h2>Spending by category</h2><ul id="breakdown-list"></ul></section>
+
+      <section id="budget">
+        <h2>Monthly budget</h2>
+        <div id="budget-form">
+          <input type="number" id="budget-input" placeholder="Monthly limit (KES)" min="0.01" step="0.01">
+          <button id="budget-btn" type="button">Set limit</button>
+        </div>
+        <p id="budget-status">No limit set yet.</p>
+        <div class="bd-bar"><div id="budget-fill" class="bd-fill"></div></div>
+      </section>
+
+      <section id="transactions"><h2>Transactions</h2><ul id="list"></ul></section>
+    </div>
   </main>
   <script src="script.js"></script>
 </body>
