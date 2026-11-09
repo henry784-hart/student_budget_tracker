@@ -29,6 +29,7 @@ const budgetInput = document.getElementById("budget-input");
 const budgetBtn = document.getElementById("budget-btn");
 const budgetStatus = document.getElementById("budget-status");
 const budgetFill = document.getElementById("budget-fill");
+const categoryList = document.getElementById("category-list");
 
 // 3. Format numbers with commas
 function formatNumber(n) {
@@ -174,6 +175,35 @@ const pctText = raw < 1 ? "<1%" : pct + "%";
 }
 
 // 10. Draw the list and the totals on the page
+// Suggest categories you have already used, plus a few common ones
+function renderCategorySuggestions() {
+  categoryList.innerHTML = "";
+
+  const defaults = [
+    "Food",
+    "Transport",
+    "Airtime/Data",
+    "Rent/Hostel",
+    "Books/Stationery",
+    "Fees",
+    "Entertainment",
+    "Other",
+  ];
+
+  const all = [...transactions.map((t) => t.category), ...defaults];
+  const seen = new Set();
+
+  all.forEach((c) => {
+    const name = c.trim();
+    const key = name.toLowerCase();
+    if (name === "" || seen.has(key)) return;
+    seen.add(key);
+
+    const option = document.createElement("option");
+    option.value = name;
+    categoryList.appendChild(option);
+  });
+}
 function render() {
   list.innerHTML = "";
   let income = 0;
@@ -223,6 +253,7 @@ function render() {
 
   renderBreakdown();
   renderBudget();
+  renderCategorySuggestions();
 }
 
 // 11. Connect the buttons, then draw the page once on load
