@@ -24,26 +24,27 @@
         <option value="income">Income</option>
       </select>
       <input type="text" id="category" list="category-list" placeholder="Category e.g. Food">
-<datalist id="category-list"></datalist>
+      <datalist id="category-list"></datalist>
       <input type="date" id="date">
       <input type="text" id="note" placeholder="Note (optional) e.g. lunch at campus">
-      <button id="add-btn">Add</button>
-      <button id="add-btn">Add</button>
-<button id="cancel-btn" type="button" style="display:none">Cancel edit</button>
+      <button id="add-btn" type="button">Add</button>
+      <button id="cancel-btn" type="button" style="display: none">Cancel edit</button>
     </section>
+
     <section id="breakdown">
-  <h2>Spending by category</h2>
-  <ul id="breakdown-list"></ul>
-</section>
-<section id="budget">
-  <h2>Monthly budget</h2>
-  <div id="budget-form">
-    <input type="number" id="budget-input" placeholder="Monthly limit (KES)">
-    <button id="budget-btn">Set limit</button>
-  </div>
-  <p id="budget-status">No limit set yet.</p>
-  <div class="bd-bar"><div id="budget-fill" class="bd-fill"></div></div>
-</section>
+      <h2>Spending by category</h2>
+      <ul id="breakdown-list"></ul>
+    </section>
+
+    <section id="budget">
+      <h2>Monthly budget</h2>
+      <div id="budget-form">
+        <input type="number" id="budget-input" placeholder="Monthly limit (KES)">
+        <button id="budget-btn">Set limit</button>
+      </div>
+      <p id="budget-status">No limit set yet.</p>
+      <div class="bd-bar"><div id="budget-fill" class="bd-fill"></div></div>
+    </section>
 
     <section id="transactions">
       <h2>Transactions</h2>
