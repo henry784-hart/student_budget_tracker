@@ -13,6 +13,9 @@ try {
   monthlyBudget = 0;
 }
 
+// Which transaction is being edited (null = none)
+let editingId = null;
+
 // 2. Grab the page elements we need
 const amountInput = document.getElementById("amount");
 const typeInput = document.getElementById("type");
@@ -20,6 +23,8 @@ const categoryInput = document.getElementById("category");
 const dateInput = document.getElementById("date");
 const noteInput = document.getElementById("note");
 const addBtn = document.getElementById("add-btn");
+const cancelBtn = document.getElementById("cancel-btn");
+const categoryList = document.getElementById("category-list");
 const list = document.getElementById("list");
 const incomeEl = document.getElementById("income");
 const expensesEl = document.getElementById("expenses");
@@ -29,7 +34,6 @@ const budgetInput = document.getElementById("budget-input");
 const budgetBtn = document.getElementById("budget-btn");
 const budgetStatus = document.getElementById("budget-status");
 const budgetFill = document.getElementById("budget-fill");
-const categoryList = document.getElementById("category-list");
 
 // 3. Format numbers with commas
 function formatNumber(n) {
@@ -41,7 +45,23 @@ function save() {
   localStorage.setItem("transactions", JSON.stringify(transactions));
 }
 
-// 5. Add a transaction
+// 5. Form helpers
+function clearForm() {
+  amountInput.value = "";
+  categoryInput.value = "";
+  noteInput.value = "";
+  dateInput.value = "";
+}
+
+function exitEditMode() {
+  editingId = null;
+  addBtn.textContent = "Add";
+  cancelBtn.style.display = "none";
+  typeInput.value = "expense";
+  clearForm();
+}
+
+// 6. Add a new transaction, or save changes to one being edited
 function addTransaction() {
   const amount = parseFloat(amountInput.value);
   const category = categoryInput.value.trim();
@@ -51,32 +71,63 @@ function addTransaction() {
     return;
   }
 
-  transactions.push({
-    id: Date.now(),
-    amount: amount,
-    type: typeInput.value,
-    category: category,
-    note: noteInput.value.trim(),
-    date: dateInput.value,
-  });
+  if (editingId !== null) {
+    const t = transactions.find((item) => item.id === editingId);
+    if (t) {
+      t.amount = amount;
+      t.type = typeInput.value;
+      t.category = category;
+      t.note = noteInput.value.trim();
+      t.date = dateInput.value;
+    }
+    exitEditMode();
+  } else {
+    transactions.push({
+      id: Date.now(),
+      amount: amount,
+      type: typeInput.value,
+      category: category,
+      note: noteInput.value.trim(),
+      date: dateInput.value,
+    });
+    clearForm();
+  }
 
   save();
   render();
-
-  amountInput.value = "";
-  categoryInput.value = "";
-  noteInput.value = "";
-  dateInput.value = "";
 }
 
-// 6. Delete a transaction
+// 7. Load a transaction into the form for editing
+function startEdit(id) {
+  const t = transactions.find((item) => item.id === id);
+  if (!t) return;
+
+  editingId = id;
+  amountInput.value = t.amount;
+  typeInput.value = t.type;
+  categoryInput.value = t.category;
+  noteInput.value = t.note || "";
+  dateInput.value = t.date;
+
+  addBtn.textContent = "Save changes";
+  cancelBtn.style.display = "block";
+
+  render();
+  amountInput.scrollIntoView({ behavior: "smooth", block: "center" });
+  amountInput.focus();
+}
+
+// 8. Delete a transaction
 function deleteTransaction(id) {
+  if (editingId === id) {
+    exitEditMode();
+  }
   transactions = transactions.filter((t) => t.id !== id);
   save();
   render();
 }
 
-// 7. Set the monthly budget limit
+// 9. Set the monthly budget limit
 function setBudget() {
   const value = parseFloat(budgetInput.value);
   if (isNaN(value) || value <= 0) {
@@ -90,11 +141,11 @@ function setBudget() {
   render();
 }
 
-// 8. Show spending against the monthly limit (current month only)
+// 10. Show spending against the monthly limit (current month only)
 function renderBudget() {
   if (monthlyBudget <= 0) {
     budgetStatus.textContent = "No limit set yet. Enter one above.";
-   budgetStatus.className = state;
+    budgetStatus.className = "";
     budgetFill.style.width = "0%";
     budgetFill.className = "bd-fill";
     return;
@@ -121,12 +172,12 @@ function renderBudget() {
     budgetStatus.textContent = `Over budget by ${formatNumber(-left)} KES! Spent ${formatNumber(spent)} of ${formatNumber(monthlyBudget)} KES this month.`;
   }
 
-  budgetStatus.className = state === "over" ? "over" : "";
+  budgetStatus.className = state;
   budgetFill.style.width = Math.min(100, ratio * 100) + "%";
   budgetFill.className = "bd-fill " + state;
 }
 
-// 9. Spending by category (expenses only)
+// 11. Spending by category (expenses only)
 function renderBreakdown() {
   breakdownList.innerHTML = "";
 
@@ -151,8 +202,8 @@ function renderBreakdown() {
 
   entries.forEach(([name, amount]) => {
     const raw = (amount / totalSpent) * 100;
-const pct = Math.round(raw);
-const pctText = raw < 1 ? "<1%" : pct + "%";
+    const pct = Math.round(raw);
+    const pctText = raw < 1 ? "<1%" : pct + "%";
     const title = name.charAt(0).toUpperCase() + name.slice(1);
 
     const li = document.createElement("li");
@@ -165,7 +216,7 @@ const pctText = raw < 1 ? "<1%" : pct + "%";
     bar.className = "bd-bar";
     const fill = document.createElement("div");
     fill.className = "bd-fill";
-   fill.style.width = Math.max(raw, 1) + "%";
+    fill.style.width = Math.max(raw, 1) + "%";
     bar.appendChild(fill);
 
     li.appendChild(label);
@@ -174,8 +225,7 @@ const pctText = raw < 1 ? "<1%" : pct + "%";
   });
 }
 
-// 10. Draw the list and the totals on the page
-// Suggest categories you have already used, plus a few common ones
+// 12. Suggest categories you have already used, plus a few common ones
 function renderCategorySuggestions() {
   categoryList.innerHTML = "";
 
@@ -204,6 +254,8 @@ function renderCategorySuggestions() {
     categoryList.appendChild(option);
   });
 }
+
+// 13. Draw the list and the totals on the page
 function render() {
   list.innerHTML = "";
   let income = 0;
@@ -229,16 +281,33 @@ function render() {
 
     const li = document.createElement("li");
     li.classList.add(t.type === "income" ? "tx-income" : "tx-expense");
+    if (t.id === editingId) {
+      li.classList.add("editing");
+    }
 
     const sign = t.type === "income" ? "+" : "-";
     const noteText = t.note ? ` · ${t.note}` : "";
-    li.textContent = `${t.date} · ${t.category}${noteText} · ${sign}${formatNumber(t.amount)} KES `;
 
-    const btn = document.createElement("button");
-    btn.textContent = "Delete";
-    btn.addEventListener("click", () => deleteTransaction(t.id));
+    const text = document.createElement("span");
+    text.textContent = `${t.date} · ${t.category}${noteText} · ${sign}${formatNumber(t.amount)} KES`;
 
-    li.appendChild(btn);
+    const actions = document.createElement("div");
+    actions.className = "actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "Edit";
+    editBtn.className = "edit-btn";
+    editBtn.addEventListener("click", () => startEdit(t.id));
+
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", () => deleteTransaction(t.id));
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+
+    li.appendChild(text);
+    li.appendChild(actions);
     list.appendChild(li);
   });
 
@@ -256,8 +325,12 @@ function render() {
   renderCategorySuggestions();
 }
 
-// 11. Connect the buttons, then draw the page once on load
+// 14. Connect the buttons, then draw the page once on load
 addBtn.addEventListener("click", addTransaction);
+cancelBtn.addEventListener("click", () => {
+  exitEditMode();
+  render();
+});
 budgetBtn.addEventListener("click", setBudget);
 if (monthlyBudget > 0) {
   budgetInput.value = monthlyBudget;

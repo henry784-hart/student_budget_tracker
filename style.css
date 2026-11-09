@@ -207,6 +207,24 @@
  #budget-fill.over {
    background: #ef4444;
  }
+ .actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+#list li button.edit-btn {
+  background: #2563eb;
+}
+
+#list li.editing {
+  outline: 2px solid #00e5c3;
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+#add-transaction #cancel-btn {
+  background: #64748b;
+}
 
  @media (min-width: 768px) {
    body {
