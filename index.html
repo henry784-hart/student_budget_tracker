@@ -9,6 +9,7 @@
 <body>
   <main>
     <h1>Student Budget Tracker</h1>
+    <p id="app-status" class="app-status" role="status" aria-live="polite">Connecting to the Flask API…</p>
 
     <section id="summary">
       <div>Income: <span id="income">0</span></div>
@@ -20,18 +21,9 @@
       <h2>This month</h2>
       <p id="month-label" class="month-label"></p>
       <div class="monthly-cards">
-        <div class="monthly-card income">
-          <span class="label">Income</span>
-          <strong id="monthly-income">KES 0</strong>
-        </div>
-        <div class="monthly-card expense">
-          <span class="label">Expenses</span>
-          <strong id="monthly-expenses">KES 0</strong>
-        </div>
-        <div class="monthly-card balance">
-          <span class="label">Balance</span>
-          <strong id="monthly-balance">KES 0</strong>
-        </div>
+        <div class="monthly-card income"><span class="label">Income</span><strong id="monthly-income">KES 0</strong></div>
+        <div class="monthly-card expense"><span class="label">Expenses</span><strong id="monthly-expenses">KES 0</strong></div>
+        <div class="monthly-card balance"><span class="label">Balance</span><strong id="monthly-balance">KES 0</strong></div>
       </div>
     </section>
 
@@ -39,10 +31,7 @@
       <h2>Add transaction</h2>
       <form id="transaction-form" novalidate>
         <input type="number" id="amount" placeholder="Amount (KES)" min="0.01" step="0.01" required>
-        <select id="type">
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-        </select>
+        <select id="type"><option value="expense">Expense</option><option value="income">Income</option></select>
         <input type="text" id="category" list="category-list" placeholder="Category e.g. Food" required>
         <datalist id="category-list"></datalist>
         <input type="date" id="date" required>
@@ -52,10 +41,7 @@
       </form>
     </section>
 
-    <section id="breakdown">
-      <h2>Spending by category</h2>
-      <ul id="breakdown-list"></ul>
-    </section>
+    <section id="breakdown"><h2>Spending by category</h2><ul id="breakdown-list"></ul></section>
 
     <section id="budget">
       <h2>Monthly budget</h2>
@@ -67,12 +53,8 @@
       <div class="bd-bar"><div id="budget-fill" class="bd-fill"></div></div>
     </section>
 
-    <section id="transactions">
-      <h2>Transactions</h2>
-      <ul id="list"></ul>
-    </section>
+    <section id="transactions"><h2>Transactions</h2><ul id="list"></ul></section>
   </main>
-
   <script src="script.js"></script>
 </body>
 </html>
