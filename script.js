@@ -1,22 +1,39 @@
-// 1. Load saved data
+function getTodayISODate() {
+  const now = new Date();
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+function getCurrentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatNumber(number) {
+  return Number(number || 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+function formatCurrency(number) {
+  return `KES ${formatNumber(number)}`;
+}
+
+const API_BASE_URL = window.BUDGET_API_URL || "http://127.0.0.1:5000/api";
 let transactions = [];
-try {
-  transactions = JSON.parse(localStorage.getItem("transactions")) || [];
-} catch (e) {
-  transactions = [];
-}
-
 let monthlyBudget = 0;
-try {
-  monthlyBudget = parseFloat(localStorage.getItem("monthlyBudget")) || 0;
-} catch (e) {
-  monthlyBudget = 0;
-}
-
-// Which transaction is being edited (null = none)
 let editingId = null;
+let currentUser = null;
 
-// 2. Grab the page elements we need
+const authPanel = document.getElementById("auth-panel");
+const authForm = document.getElementById("auth-form");
+const authEmail = document.getElementById("auth-email");
+const authPassword = document.getElementById("auth-password");
+const authMessage = document.getElementById("auth-message");
+const loginBtn = document.getElementById("login-btn");
+const registerBtn = document.getElementById("register-btn");
+const appShell = document.getElementById("app-shell");
+const appStatus = document.getElementById("app-status");
+const userBanner = document.getElementById("user-banner");
+const logoutBtn = document.getElementById("logout-btn");
 const amountInput = document.getElementById("amount");
 const typeInput = document.getElementById("type");
 const categoryInput = document.getElementById("category");
@@ -40,34 +57,98 @@ const budgetBtn = document.getElementById("budget-btn");
 const budgetStatus = document.getElementById("budget-status");
 const budgetFill = document.getElementById("budget-fill");
 
-function getTodayISODate() {
-  return new Date().toISOString().split("T")[0];
+async function apiRequest(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    credentials: "include",
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers,
+    },
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || `Request failed (${response.status}).`);
+  return result;
 }
 
-function getCurrentMonthKey() {
-  const now = new Date();
-  return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
+function setAuthMessage(message, isError = false) {
+  authMessage.textContent = message;
+  authMessage.classList.toggle("error", isError);
 }
 
-function getMonthLabel(date = new Date()) {
-  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
+function setAppStatus(message, isError = false) {
+  appStatus.textContent = message;
+  appStatus.classList.toggle("error", isError);
 }
 
-// 3. Format numbers with commas
-function formatNumber(n) {
-  return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+function showSignedOut() {
+  currentUser = null;
+  transactions = [];
+  monthlyBudget = 0;
+  authPanel.classList.remove("hidden");
+  appShell.classList.add("hidden");
 }
 
-function formatCurrency(n) {
-  return `KES ${formatNumber(n)}`;
+function showSignedIn() {
+  authPanel.classList.add("hidden");
+  appShell.classList.remove("hidden");
+  userBanner.textContent = currentUser.email;
 }
 
-// 4. Save transactions to the browser
-function save() {
-  localStorage.setItem("transactions", JSON.stringify(transactions));
+async function loadAccountData() {
+  const [loadedTransactions, budget] = await Promise.all([
+    apiRequest("/transactions"),
+    apiRequest("/budget"),
+  ]);
+  transactions = loadedTransactions;
+  monthlyBudget = Number(budget.monthly_limit) || 0;
+  budgetInput.value = monthlyBudget || "";
+  render();
 }
 
-// 5. Form helpers
+async function checkSession() {
+  try {
+    currentUser = await apiRequest("/auth/me");
+    showSignedIn();
+    setAppStatus("Signed in. Your data is saved to this account.");
+    await loadAccountData();
+  } catch (error) {
+    showSignedOut();
+    setAuthMessage(
+      error.message.includes("Failed to fetch")
+        ? "Cannot reach the API. Start Flask, then refresh this page."
+        : "Log in or create an account to continue."
+    );
+  }
+}
+
+async function authenticate(endpoint) {
+  const email = authEmail.value.trim();
+  const password = authPassword.value;
+  if (!email || !password) {
+    setAuthMessage("Enter your email and password.", true);
+    return;
+  }
+  loginBtn.disabled = true;
+  registerBtn.disabled = true;
+  try {
+    currentUser = await apiRequest(endpoint, {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    authPassword.value = "";
+    showSignedIn();
+    setAuthMessage("");
+    setAppStatus("Signed in. Your data is saved to this account.");
+    await loadAccountData();
+  } catch (error) {
+    setAuthMessage(error.message, true);
+  } finally {
+    loginBtn.disabled = false;
+    registerBtn.disabled = false;
+  }
+}
+
 function clearForm() {
   amountInput.value = "";
   categoryInput.value = "";
@@ -78,112 +159,100 @@ function clearForm() {
 function exitEditMode() {
   editingId = null;
   addBtn.textContent = "Add";
-  cancelBtn.style.display = "none";
+  cancelBtn.classList.add("hidden");
   typeInput.value = "expense";
   clearForm();
 }
 
-// 6. Add a new transaction, or save changes to one being edited
-function addTransaction() {
-  const amount = parseFloat(amountInput.value);
-  const category = categoryInput.value.trim();
-
-  if (isNaN(amount) || amount <= 0 || category === "" || dateInput.value === "") {
+async function saveTransaction(event) {
+  event.preventDefault();
+  const transaction = {
+    amount: Number(amountInput.value),
+    type: typeInput.value,
+    category: categoryInput.value.trim(),
+    note: noteInput.value.trim(),
+    date: dateInput.value,
+  };
+  if (!Number.isFinite(transaction.amount) || transaction.amount <= 0 || !transaction.category || !transaction.date) {
     alert("Please enter a valid amount, category and date.");
     return;
   }
 
-  if (editingId !== null) {
-    const t = transactions.find((item) => item.id === editingId);
-    if (t) {
-      t.amount = amount;
-      t.type = typeInput.value;
-      t.category = category;
-      t.note = noteInput.value.trim();
-      t.date = dateInput.value;
+  try {
+    if (editingId === null) {
+      const created = await apiRequest("/transactions", { method: "POST", body: JSON.stringify(transaction) });
+      transactions.push(created);
+      clearForm();
+    } else {
+      const updated = await apiRequest(`/transactions/${editingId}`, { method: "PUT", body: JSON.stringify(transaction) });
+      transactions = transactions.map((item) => item.id === editingId ? updated : item);
+      exitEditMode();
     }
-    exitEditMode();
-  } else {
-    transactions.push({
-      id: Date.now(),
-      amount: amount,
-      type: typeInput.value,
-      category: category,
-      note: noteInput.value.trim(),
-      date: dateInput.value,
-    });
-    clearForm();
+    setAppStatus("Transaction saved.");
+    render();
+  } catch (error) {
+    setAppStatus(error.message, true);
   }
-
-  save();
-  render();
 }
 
-// 7. Load a transaction into the form for editing
 function startEdit(id) {
-  const t = transactions.find((item) => item.id === id);
-  if (!t) return;
-
+  const transaction = transactions.find((item) => item.id === id);
+  if (!transaction) return;
   editingId = id;
-  amountInput.value = t.amount;
-  typeInput.value = t.type;
-  categoryInput.value = t.category;
-  noteInput.value = t.note || "";
-  dateInput.value = t.date;
-
+  amountInput.value = transaction.amount;
+  typeInput.value = transaction.type;
+  categoryInput.value = transaction.category;
+  noteInput.value = transaction.note || "";
+  dateInput.value = transaction.date;
   addBtn.textContent = "Save changes";
-  cancelBtn.style.display = "block";
-
-  render();
+  cancelBtn.classList.remove("hidden");
   amountInput.scrollIntoView({ behavior: "smooth", block: "center" });
   amountInput.focus();
-}
-
-// 8. Delete a transaction
-function deleteTransaction(id) {
-  if (editingId === id) {
-    exitEditMode();
-  }
-  transactions = transactions.filter((t) => t.id !== id);
-  save();
   render();
 }
 
-// 9. Set the monthly budget limit
-function setBudget() {
-  const value = parseFloat(budgetInput.value);
-  if (isNaN(value) || value <= 0) {
-    alert("Please enter a monthly limit greater than 0.");
+async function deleteTransaction(id) {
+  try {
+    await apiRequest(`/transactions/${id}`, { method: "DELETE" });
+    if (editingId === id) exitEditMode();
+    transactions = transactions.filter((item) => item.id !== id);
+    setAppStatus("Transaction deleted.");
+    render();
+  } catch (error) {
+    setAppStatus(error.message, true);
+  }
+}
+
+async function saveBudget() {
+  const value = Number(budgetInput.value);
+  if (!Number.isFinite(value) || value <= 0) {
+    setAppStatus("Enter a monthly budget greater than zero.", true);
     return;
   }
-  monthlyBudget = value;
   try {
-    localStorage.setItem("monthlyBudget", String(value));
-  } catch (e) {}
-  render();
+    const result = await apiRequest("/budget", {
+      method: "PUT",
+      body: JSON.stringify({ monthly_limit: value }),
+    });
+    monthlyBudget = result.monthly_limit;
+    setAppStatus("Monthly budget saved to your account.");
+    renderBudget();
+  } catch (error) {
+    setAppStatus(error.message, true);
+  }
 }
 
 function renderMonthlySummary() {
-  const now = new Date();
   const monthKey = getCurrentMonthKey();
-  const monthLabel = getMonthLabel(now);
-  monthLabelEl.textContent = monthLabel;
-
+  monthLabelEl.textContent = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date());
   let income = 0;
   let expenses = 0;
-
-  transactions.forEach((t) => {
-    if (!t.date || !t.date.startsWith(monthKey)) return;
-
-    if (t.type === "income") {
-      income += t.amount;
-    } else if (t.type === "expense") {
-      expenses += t.amount;
-    }
+  transactions.forEach((transaction) => {
+    if (!transaction.date?.startsWith(monthKey)) return;
+    if (transaction.type === "income") income += Number(transaction.amount) || 0;
+    if (transaction.type === "expense") expenses += Number(transaction.amount) || 0;
   });
-
   const balance = income - expenses;
-
   monthlyIncomeEl.textContent = formatCurrency(income);
   monthlyExpensesEl.textContent = formatCurrency(expenses);
   monthlyBalanceEl.textContent = formatCurrency(balance);
@@ -191,7 +260,6 @@ function renderMonthlySummary() {
   monthlyBalanceEl.parentElement.classList.toggle("negative", balance < 0);
 }
 
-// 10. Show spending against the monthly limit (current month only)
 function renderBudget() {
   if (monthlyBudget <= 0) {
     budgetStatus.textContent = "No limit set yet. Enter one above.";
@@ -200,198 +268,133 @@ function renderBudget() {
     budgetFill.className = "bd-fill";
     return;
   }
-
   const monthKey = getCurrentMonthKey();
-
-  let spent = 0;
-  transactions.forEach((t) => {
-    if (t.type === "expense" && t.date.startsWith(monthKey)) {
-      spent += t.amount;
-    }
-  });
-
+  const spent = transactions.reduce((sum, item) => item.type === "expense" && item.date?.startsWith(monthKey)
+    ? sum + (Number(item.amount) || 0) : sum, 0);
   const ratio = spent / monthlyBudget;
   const left = monthlyBudget - spent;
   const state = ratio > 1 ? "over" : ratio >= 0.8 ? "warn" : "ok";
-
-  if (left >= 0) {
-    budgetStatus.textContent = `Spent ${formatNumber(spent)} of ${formatNumber(monthlyBudget)} KES this month · ${formatNumber(left)} KES left (${Math.round(ratio * 100)}%)`;
-  } else {
-    budgetStatus.textContent = `Over budget by ${formatNumber(-left)} KES! Spent ${formatNumber(spent)} of ${formatNumber(monthlyBudget)} KES this month.`;
-  }
-
+  budgetStatus.textContent = left >= 0
+    ? `Spent ${formatNumber(spent)} of ${formatNumber(monthlyBudget)} KES this month · ${formatNumber(left)} KES left (${Math.round(ratio * 100)}%)`
+    : `Over budget by ${formatNumber(-left)} KES! Spent ${formatNumber(spent)} of ${formatNumber(monthlyBudget)} KES this month.`;
   budgetStatus.className = state;
-  budgetFill.style.width = Math.min(100, ratio * 100) + "%";
-  budgetFill.className = "bd-fill " + state;
+  budgetFill.style.width = `${Math.min(100, ratio * 100)}%`;
+  budgetFill.className = `bd-fill ${state}`;
 }
 
-// 11. Spending by category (expenses only)
 function renderBreakdown() {
   breakdownList.innerHTML = "";
-
-  const totals = {};
-  transactions.forEach((t) => {
-    if (t.type !== "expense") return;
-    const key = t.category.trim().toLowerCase();
-    totals[key] = (totals[key] || 0) + t.amount;
+  const totals = new Map();
+  transactions.forEach((item) => {
+    if (item.type !== "expense") return;
+    const name = String(item.category || "").trim();
+    const key = name.toLowerCase();
+    if (!key) return;
+    const existing = totals.get(key) || { name, amount: 0 };
+    existing.amount += Number(item.amount) || 0;
+    totals.set(key, existing);
   });
-
-  const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
-
-  if (entries.length === 0) {
+  const entries = [...totals.values()].sort((a, b) => b.amount - a.amount);
+  if (!entries.length) {
     const empty = document.createElement("li");
     empty.className = "bd-empty";
     empty.textContent = "No expenses yet.";
     breakdownList.appendChild(empty);
     return;
   }
-
-  const totalSpent = entries.reduce((sum, entry) => sum + entry[1], 0);
-
-  entries.forEach(([name, amount]) => {
-    const raw = (amount / totalSpent) * 100;
-    const pct = Math.round(raw);
-    const pctText = raw < 1 ? "<1%" : pct + "%";
-    const title = name.charAt(0).toUpperCase() + name.slice(1);
-
+  const total = entries.reduce((sum, item) => sum + item.amount, 0);
+  entries.forEach(({ name, amount }) => {
+    const percent = total ? amount / total * 100 : 0;
     const li = document.createElement("li");
-
     const label = document.createElement("div");
     label.className = "bd-label";
-    label.textContent = `${title} · ${formatNumber(amount)} KES (${pctText})`;
-
+    label.textContent = `${name} · ${formatNumber(amount)} KES (${percent < 1 ? "<1%" : `${Math.round(percent)}%`})`;
     const bar = document.createElement("div");
     bar.className = "bd-bar";
     const fill = document.createElement("div");
     fill.className = "bd-fill";
-    fill.style.width = Math.max(raw, 1) + "%";
+    fill.style.width = `${Math.max(percent, 1)}%`;
     bar.appendChild(fill);
-
-    li.appendChild(label);
-    li.appendChild(bar);
+    li.append(label, bar);
     breakdownList.appendChild(li);
   });
 }
 
-// 12. Suggest categories you have already used, plus a few common ones
 function renderCategorySuggestions() {
   categoryList.innerHTML = "";
-
-  const defaults = [
-    "Food",
-    "Transport",
-    "Airtime/Data",
-    "Rent/Hostel",
-    "Books/Stationery",
-    "Fees",
-    "Entertainment",
-    "Other",
-  ];
-
-  const all = [...transactions.map((t) => t.category), ...defaults];
-  const seen = new Set();
-
-  all.forEach((value) => {
+  const defaults = ["Food", "Transport", "Airtime/Data", "Rent/Hostel", "Books/Stationery", "Fees", "Entertainment", "Other"];
+  const used = new Set();
+  [...transactions.map((item) => item.category), ...defaults].forEach((value) => {
     const name = String(value || "").trim();
     const key = name.toLowerCase();
-    if (name === "" || seen.has(key)) return;
-    seen.add(key);
-
+    if (!name || used.has(key)) return;
+    used.add(key);
     const option = document.createElement("option");
     option.value = name;
     categoryList.appendChild(option);
   });
 }
 
-// 13. Draw the list and the totals on the page
 function render() {
   list.innerHTML = "";
   let income = 0;
   let expenses = 0;
-
-  if (transactions.length === 0) {
+  if (!transactions.length) {
     const empty = document.createElement("li");
     empty.className = "empty";
     empty.textContent = "No transactions yet. Add your first one above.";
     list.appendChild(empty);
   }
-
-  const sorted = [...transactions].sort(
-    (a, b) => b.date.localeCompare(a.date) || b.id - a.id
-  );
-
-  sorted.forEach((t) => {
-    if (t.type === "income") {
-      income += t.amount;
-    } else {
-      expenses += t.amount;
-    }
-
+  [...transactions].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id).forEach((item) => {
+    const amount = Number(item.amount) || 0;
+    if (item.type === "income") income += amount;
+    else expenses += amount;
     const li = document.createElement("li");
-    li.classList.add(t.type === "income" ? "tx-income" : "tx-expense");
-    if (t.id === editingId) {
-      li.classList.add("editing");
-    }
-
-    const sign = t.type === "income" ? "+" : "-";
-    const noteText = t.note ? ` · ${t.note}` : "";
-
+    li.classList.add(item.type === "income" ? "tx-income" : "tx-expense");
+    if (item.id === editingId) li.classList.add("editing");
     const text = document.createElement("span");
-    text.textContent = `${t.date} · ${t.category}${noteText} · ${sign}${formatNumber(t.amount)} KES`;
-
+    const note = item.note ? ` · ${item.note}` : "";
+    text.textContent = `${item.date} · ${item.category}${note} · ${item.type === "income" ? "+" : "-"}${formatNumber(amount)} KES`;
     const actions = document.createElement("div");
     actions.className = "actions";
-
-    const editBtn = document.createElement("button");
-    editBtn.textContent = "Edit";
-    editBtn.className = "edit-btn";
-    editBtn.addEventListener("click", () => startEdit(t.id));
-
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "Delete";
-    delBtn.addEventListener("click", () => deleteTransaction(t.id));
-
-    actions.appendChild(editBtn);
-    actions.appendChild(delBtn);
-
-    li.appendChild(text);
-    li.appendChild(actions);
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "edit-btn";
+    edit.textContent = "Edit";
+    edit.addEventListener("click", () => startEdit(item.id));
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.textContent = "Delete";
+    remove.addEventListener("click", () => deleteTransaction(item.id));
+    actions.append(edit, remove);
+    li.append(text, actions);
     list.appendChild(li);
   });
-
   const balance = income - expenses;
-
   incomeEl.textContent = formatNumber(income);
   expensesEl.textContent = formatNumber(expenses);
   balanceEl.textContent = formatNumber(balance);
-
   balanceEl.classList.toggle("positive", balance >= 0);
   balanceEl.classList.toggle("negative", balance < 0);
-
   renderMonthlySummary();
   renderBreakdown();
   renderBudget();
   renderCategorySuggestions();
 }
 
-// 14. Connect the buttons, then draw the page once on load
-transactionForm.addEventListener("submit", (event) => {
+authForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  addTransaction();
+  authenticate("/auth/login");
 });
-
-cancelBtn.addEventListener("click", () => {
-  exitEditMode();
-  render();
+registerBtn.addEventListener("click", () => authenticate("/auth/register"));
+logoutBtn.addEventListener("click", async () => {
+  try { await apiRequest("/auth/logout", { method: "POST" }); } catch (error) { console.warn(error); }
+  showSignedOut();
+  setAuthMessage("You have logged out.");
 });
-budgetBtn.addEventListener("click", setBudget);
+transactionForm.addEventListener("submit", saveTransaction);
+cancelBtn.addEventListener("click", () => { exitEditMode(); render(); });
+budgetBtn.addEventListener("click", saveBudget);
 
-if (monthlyBudget > 0) {
-  budgetInput.value = monthlyBudget;
-}
-
-if (!dateInput.value) {
-  dateInput.value = getTodayISODate();
-}
-
-render();
+dateInput.value = getTodayISODate();
+checkSession();
