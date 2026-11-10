@@ -1,11 +1,9 @@
-// 1. Load saved data
-let transactions = [];
-try {
-  transactions = JSON.parse(localStorage.getItem("transactions")) || [];
-} catch (e) {
-  transactions = [];
-}
+// 1. Settings and saved data
+const API_URL = "http://127.0.0.1:5000/api";
 
+let transactions = [];
+
+// The monthly budget is still saved in the browser for now
 let monthlyBudget = 0;
 try {
   monthlyBudget = parseFloat(localStorage.getItem("monthlyBudget")) || 0;
@@ -39,9 +37,18 @@ const budgetInput = document.getElementById("budget-input");
 const budgetBtn = document.getElementById("budget-btn");
 const budgetStatus = document.getElementById("budget-status");
 const budgetFill = document.getElementById("budget-fill");
+const statusEl = document.getElementById("app-status");
 
+// 3. Date and number helpers
 function getTodayISODate() {
-  return new Date().toISOString().split("T")[0];
+  const now = new Date();
+  return (
+    now.getFullYear() +
+    "-" +
+    String(now.getMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(now.getDate()).padStart(2, "0")
+  );
 }
 
 function getCurrentMonthKey() {
@@ -50,10 +57,12 @@ function getCurrentMonthKey() {
 }
 
 function getMonthLabel(date = new Date()) {
-  return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
 }
 
-// 3. Format numbers with commas
 function formatNumber(n) {
   return n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
@@ -62,9 +71,39 @@ function formatCurrency(n) {
   return `KES ${formatNumber(n)}`;
 }
 
-// 4. Save transactions to the browser
-function save() {
-  localStorage.setItem("transactions", JSON.stringify(transactions));
+// 4. Talking to the server
+function showStatus(message) {
+  statusEl.textContent = message;
+  statusEl.style.display = message ? "block" : "none";
+}
+
+async function request(path, options = {}) {
+  const response = await fetch(API_URL + path, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "Something went wrong.");
+  }
+  return data;
+}
+
+function describeError(err) {
+  if (err instanceof TypeError) {
+    return "Cannot reach the server. Is the backend running on port 5000?";
+  }
+  return err.message;
+}
+
+async function loadTransactions() {
+  try {
+    transactions = await request("/transactions");
+    showStatus("");
+  } catch (err) {
+    showStatus(describeError(err));
+  }
+  render();
 }
 
 // 5. Form helpers
@@ -84,7 +123,7 @@ function exitEditMode() {
 }
 
 // 6. Add a new transaction, or save changes to one being edited
-function addTransaction() {
+async function addTransaction() {
   const amount = parseFloat(amountInput.value);
   const category = categoryInput.value.trim();
 
@@ -93,29 +132,37 @@ function addTransaction() {
     return;
   }
 
-  if (editingId !== null) {
-    const t = transactions.find((item) => item.id === editingId);
-    if (t) {
-      t.amount = amount;
-      t.type = typeInput.value;
-      t.category = category;
-      t.note = noteInput.value.trim();
-      t.date = dateInput.value;
-    }
-    exitEditMode();
-  } else {
-    transactions.push({
-      id: Date.now(),
-      amount: amount,
-      type: typeInput.value,
-      category: category,
-      note: noteInput.value.trim(),
-      date: dateInput.value,
-    });
-    clearForm();
-  }
+  const payload = {
+    amount: amount,
+    type: typeInput.value,
+    category: category,
+    note: noteInput.value.trim(),
+    date: dateInput.value,
+  };
 
-  save();
+  addBtn.disabled = true;
+  try {
+    if (editingId !== null) {
+      const updated = await request("/transactions/" + editingId, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      transactions = transactions.map((t) => (t.id === updated.id ? updated : t));
+      exitEditMode();
+    } else {
+      const created = await request("/transactions", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      transactions.push(created);
+      clearForm();
+    }
+    showStatus("");
+  } catch (err) {
+    showStatus(describeError(err));
+  } finally {
+    addBtn.disabled = false;
+  }
   render();
 }
 
@@ -140,16 +187,21 @@ function startEdit(id) {
 }
 
 // 8. Delete a transaction
-function deleteTransaction(id) {
-  if (editingId === id) {
-    exitEditMode();
+async function deleteTransaction(id) {
+  try {
+    await request("/transactions/" + id, { method: "DELETE" });
+    if (editingId === id) {
+      exitEditMode();
+    }
+    transactions = transactions.filter((t) => t.id !== id);
+    showStatus("");
+  } catch (err) {
+    showStatus(describeError(err));
   }
-  transactions = transactions.filter((t) => t.id !== id);
-  save();
   render();
 }
 
-// 9. Set the monthly budget limit
+// 9. Set the monthly budget limit (still stored in the browser)
 function setBudget() {
   const value = parseFloat(budgetInput.value);
   if (isNaN(value) || value <= 0) {
@@ -163,18 +215,16 @@ function setBudget() {
   render();
 }
 
+// 10. This month's income, expenses and balance
 function renderMonthlySummary() {
-  const now = new Date();
   const monthKey = getCurrentMonthKey();
-  const monthLabel = getMonthLabel(now);
-  monthLabelEl.textContent = monthLabel;
+  monthLabelEl.textContent = getMonthLabel();
 
   let income = 0;
   let expenses = 0;
 
   transactions.forEach((t) => {
     if (!t.date || !t.date.startsWith(monthKey)) return;
-
     if (t.type === "income") {
       income += t.amount;
     } else if (t.type === "expense") {
@@ -187,11 +237,12 @@ function renderMonthlySummary() {
   monthlyIncomeEl.textContent = formatCurrency(income);
   monthlyExpensesEl.textContent = formatCurrency(expenses);
   monthlyBalanceEl.textContent = formatCurrency(balance);
+
   monthlyBalanceEl.parentElement.classList.toggle("positive", balance >= 0);
   monthlyBalanceEl.parentElement.classList.toggle("negative", balance < 0);
 }
 
-// 10. Show spending against the monthly limit (current month only)
+// 11. Show spending against the monthly limit (current month only)
 function renderBudget() {
   if (monthlyBudget <= 0) {
     budgetStatus.textContent = "No limit set yet. Enter one above.";
@@ -225,7 +276,7 @@ function renderBudget() {
   budgetFill.className = "bd-fill " + state;
 }
 
-// 11. Spending by category (expenses only)
+// 12. Spending by category (expenses only)
 function renderBreakdown() {
   breakdownList.innerHTML = "";
 
@@ -273,7 +324,7 @@ function renderBreakdown() {
   });
 }
 
-// 12. Suggest categories you have already used, plus a few common ones
+// 13. Suggest categories you have already used, plus a few common ones
 function renderCategorySuggestions() {
   categoryList.innerHTML = "";
 
@@ -303,7 +354,7 @@ function renderCategorySuggestions() {
   });
 }
 
-// 13. Draw the list and the totals on the page
+// 14. Draw the list and the totals on the page
 function render() {
   list.innerHTML = "";
   let income = 0;
@@ -374,24 +425,21 @@ function render() {
   renderCategorySuggestions();
 }
 
-// 14. Connect the buttons, then draw the page once on load
+// 15. Connect the buttons, draw the page, then load data from the server
 transactionForm.addEventListener("submit", (event) => {
   event.preventDefault();
   addTransaction();
 });
-
 cancelBtn.addEventListener("click", () => {
   exitEditMode();
   render();
 });
 budgetBtn.addEventListener("click", setBudget);
-
 if (monthlyBudget > 0) {
   budgetInput.value = monthlyBudget;
 }
-
 if (!dateInput.value) {
   dateInput.value = getTodayISODate();
 }
-
 render();
+loadTransactions();

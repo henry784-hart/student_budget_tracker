@@ -284,6 +284,11 @@
    background: #64748b;
  }
 
+ #app-status {
+  text-align: center;
+  color: #fca5a5;
+  margin: 0 0 1rem;
+}
  @media (min-width: 768px) {
    body {
      padding: 2rem;
