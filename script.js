@@ -107,13 +107,15 @@ async function loadTransactions() {
   render();
 }
 
+// Budget failures stay on the budget text so they are not wiped by
+// loadTransactions() finishing after this one.
 async function loadBudget() {
   try {
     const data = await request("/budget?month=" + getCurrentMonthKey());
     monthlyBudget = data.limit || 0;
     budgetInput.value = monthlyBudget > 0 ? monthlyBudget : "";
   } catch (err) {
-    showStatus(describeError(err));
+    budgetStatus.textContent = describeError(err);
   }
   render();
 }
