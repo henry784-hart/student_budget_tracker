@@ -3,10 +3,25 @@ import sqlite3
 from datetime import datetime
 
 from flask import Flask, jsonify, request
-from flask_cors import CORS
+
+try:
+    from flask_cors import CORS
+except ImportError as exc:  # pragma: no cover
+    raise ImportError(
+        "flask-cors is not installed. Run: python -m pip install -r requirements.txt"
+    ) from exc
 
 app = Flask(__name__)
-CORS(app)
+
+# Allow the static frontend (Live Server / GitHub Pages) to call this API.
+# Add your deployed frontend origin here when you go live.
+ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+]
+CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "budget.db")
 
