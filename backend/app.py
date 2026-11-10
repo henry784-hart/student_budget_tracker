@@ -1,4 +1,5 @@
 import os
+import re
 import sqlite3
 from datetime import datetime
 
@@ -18,8 +19,11 @@ app = Flask(__name__)
 ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "https://henry784-hart.github.io",
 ]
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
@@ -43,6 +47,14 @@ def init_db():
             category TEXT NOT NULL,
             note TEXT NOT NULL DEFAULT '',
             date TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS budgets (
+            month TEXT PRIMARY KEY,
+            limit_amount REAL NOT NULL
         )
         """
     )
@@ -161,6 +173,112 @@ def delete_transaction(tx_id):
     if deleted == 0:
         return jsonify({"error": "Transaction not found."}), 404
     return jsonify({"deleted": tx_id})
+
+
+@app.route("/api/budget", methods=["GET"])
+def get_budget():
+    month = request.args.get("month") or datetime.now().strftime("%Y-%m")
+    conn = get_db()
+    row = conn.execute(
+        "SELECT limit_amount FROM budgets WHERE month = ?", (month,)
+    ).fetchone()
+    conn.close()
+    return jsonify({"month": month, "limit": row["limit_amount"] if row else 0})
+
+
+@app.route("/api/budget", methods=["PUT"])
+def set_budget():
+    data = request.get_json(silent=True) or {}
+    month = str(data.get("month") or datetime.now().strftime("%Y-%m")).strip()
+
+    try:
+        limit = float(data.get("limit"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Limit must be a number."}), 400
+    if limit <= 0:
+        return jsonify({"error": "Limit must be greater than 0."}), 400
+
+    try:
+        datetime.strptime(month, "%Y-%m")
+    except ValueError:
+        return jsonify({"error": "Month must look like 2026-11."}), 400
+
+    conn = get_db()
+    conn.execute(
+        "INSERT INTO budgets (month, limit_amount) VALUES (?, ?) "
+        "ON CONFLICT(month) DO UPDATE SET limit_amount = excluded.limit_amount",
+        (month, limit),
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({"month": month, "limit": limit})
+
+
+# --- M-Pesa message parser -------------------------------------------------
+
+MPESA_PATTERN = re.compile(
+    r"(?P<code>[A-Z0-9]{10})\s+Confirmed\.\s+"
+    r"(?:Ksh|KES)?\s*(?P<amount>[\d,]+(?:\.\d{1,2})?)\s+"
+    r"(?P<kind>paid to|sent to|received from)\s+"
+    r"(?P<party>.+?)\s+on\s+(?P<date>\d{1,2}/\d{1,2}/\d{2,4})",
+    re.IGNORECASE,
+)
+
+CATEGORY_HINTS = {
+    "Food": ["restaurant", "cafe", "hotel", "kfc", "java", "canteen",
+             "butchery", "supermarket", "naivas", "quickmart", "chandarana"],
+    "Transport": ["matatu", "uber", "bolt", "fuel", "petrol", "total",
+                  "shell", "kenol", "bus", "taxi"],
+    "Airtime/Data": ["safaricom", "airtime", "data bundles", "telkom", "airtel"],
+    "Rent/Hostel": ["rent", "hostel", "landlord", "caretaker"],
+    "Books/Stationery": ["bookshop", "textbook", "stationery", "text book"],
+    "Fees": ["school fees", "tuition", "university", "college"],
+    "Entertainment": ["cinema", "netflix", "spotify", "showmax", "game"],
+}
+
+
+def guess_category(party):
+    low = party.lower()
+    for category, words in CATEGORY_HINTS.items():
+        if any(word in low for word in words):
+            return category
+    return "Other"
+
+
+@app.route("/api/transactions/parse", methods=["POST"])
+def parse_mpesa():
+    data = request.get_json(silent=True) or {}
+    text = str(data.get("message", "")).strip()
+    if not text:
+        return jsonify({"error": "Paste the M-Pesa message."}), 400
+
+    match = MPESA_PATTERN.search(text)
+    if not match:
+        return jsonify({"error": "Could not read that M-Pesa message."}), 400
+
+    amount = float(match.group("amount").replace(",", ""))
+    kind = match.group("kind").lower()
+    party = match.group("party").strip()
+    raw_date = match.group("date")
+
+    date = None
+    for fmt in ("%d/%m/%y", "%d/%m/%Y"):
+        try:
+            date = datetime.strptime(raw_date, fmt).strftime("%Y-%m-%d")
+            break
+        except ValueError:
+            continue
+    if date is None:
+        return jsonify({"error": "Could not read the date in that message."}), 400
+
+    return jsonify({
+        "amount": amount,
+        "type": "income" if kind == "received from" else "expense",
+        "category": guess_category(party),
+        "note": party,
+        "date": date,
+        "code": match.group("code"),
+    })
 
 
 if __name__ == "__main__":

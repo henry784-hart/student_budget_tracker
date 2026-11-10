@@ -289,6 +289,39 @@
   color: #fca5a5;
   margin: 0 0 1rem;
 }
+
+#mpesa-text {
+  display: block;
+  width: 100%;
+  padding: 0.7rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: white;
+  color: #222;
+  color-scheme: light;
+  resize: vertical;
+  margin-bottom: 0.6rem;
+}
+
+#mpesa-btn {
+  display: block;
+  width: 100%;
+  padding: 0.7rem;
+  font-size: 1rem;
+  background: #1a7f4b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+#mpesa-btn:disabled,
+#add-transaction button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
  @media (min-width: 768px) {
    body {
      padding: 2rem;

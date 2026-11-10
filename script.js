@@ -1,15 +1,14 @@
 // 1. Settings and saved data
-const API_URL = "http://127.0.0.1:5000/api";
+// Locally the API runs on port 5000; on GitHub Pages it points at the deployed backend.
+const API_URL =
+  location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:5000/api"
+    : "https://student-budget-api.onrender.com/api";
 
 let transactions = [];
 
-// The monthly budget is still saved in the browser for now
+// The monthly budget is loaded from the server (see loadBudget)
 let monthlyBudget = 0;
-try {
-  monthlyBudget = parseFloat(localStorage.getItem("monthlyBudget")) || 0;
-} catch (e) {
-  monthlyBudget = 0;
-}
 
 // Which transaction is being edited (null = none)
 let editingId = null;
@@ -38,6 +37,8 @@ const budgetBtn = document.getElementById("budget-btn");
 const budgetStatus = document.getElementById("budget-status");
 const budgetFill = document.getElementById("budget-fill");
 const statusEl = document.getElementById("app-status");
+const mpesaText = document.getElementById("mpesa-text");
+const mpesaBtn = document.getElementById("mpesa-btn");
 
 // 3. Date and number helpers
 function getTodayISODate() {
@@ -100,6 +101,17 @@ async function loadTransactions() {
   try {
     transactions = await request("/transactions");
     showStatus("");
+  } catch (err) {
+    showStatus(describeError(err));
+  }
+  render();
+}
+
+async function loadBudget() {
+  try {
+    const data = await request("/budget?month=" + getCurrentMonthKey());
+    monthlyBudget = data.limit || 0;
+    budgetInput.value = monthlyBudget > 0 ? monthlyBudget : "";
   } catch (err) {
     showStatus(describeError(err));
   }
@@ -201,18 +213,62 @@ async function deleteTransaction(id) {
   render();
 }
 
-// 9. Set the monthly budget limit (still stored in the browser)
-function setBudget() {
+// 9. Set the monthly budget limit (saved on the server)
+async function setBudget() {
   const value = parseFloat(budgetInput.value);
   if (isNaN(value) || value <= 0) {
     alert("Please enter a monthly limit greater than 0.");
     return;
   }
-  monthlyBudget = value;
+
+  budgetBtn.disabled = true;
   try {
-    localStorage.setItem("monthlyBudget", String(value));
-  } catch (e) {}
+    const saved = await request("/budget", {
+      method: "PUT",
+      body: JSON.stringify({ month: getCurrentMonthKey(), limit: value }),
+    });
+    monthlyBudget = saved.limit;
+    showStatus("");
+  } catch (err) {
+    showStatus(describeError(err));
+  } finally {
+    budgetBtn.disabled = false;
+  }
   render();
+}
+
+// 9b. Read an M-Pesa message and fill the form with the result
+async function fillFromMpesa() {
+  const message = mpesaText.value.trim();
+  if (!message) {
+    alert("Paste an M-Pesa message first.");
+    return;
+  }
+
+  mpesaBtn.disabled = true;
+  try {
+    const draft = await request("/transactions/parse", {
+      method: "POST",
+      body: JSON.stringify({ message: message }),
+    });
+
+    exitEditMode();
+    amountInput.value = draft.amount;
+    typeInput.value = draft.type;
+    categoryInput.value = draft.category;
+    noteInput.value = draft.note;
+    dateInput.value = draft.date;
+    mpesaText.value = "";
+    showStatus("");
+
+    render();
+    amountInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    amountInput.focus();
+  } catch (err) {
+    showStatus(describeError(err));
+  } finally {
+    mpesaBtn.disabled = false;
+  }
 }
 
 // 10. This month's income, expenses and balance
@@ -435,11 +491,10 @@ cancelBtn.addEventListener("click", () => {
   render();
 });
 budgetBtn.addEventListener("click", setBudget);
-if (monthlyBudget > 0) {
-  budgetInput.value = monthlyBudget;
-}
+mpesaBtn.addEventListener("click", fillFromMpesa);
 if (!dateInput.value) {
   dateInput.value = getTodayISODate();
 }
 render();
 loadTransactions();
+loadBudget();
