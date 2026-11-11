@@ -2,7 +2,7 @@
 const API_URL =
   location.hostname === "localhost" || location.hostname === "127.0.0.1"
     ? "http://127.0.0.1:5000/api"
-    : "https://student-budget-api.onrender.com/api";
+    : "https://student-budget-tracker-api.onrender.com/api";
 
 const MIN_PASSWORD_LEN = 8;
 
