@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in · Student Budget Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="styles/login.css">
+</head>
+<body class="login-page">
+  <main class="auth-card">
+    <h1>Student Budget Tracker</h1>
+    <p class="subtitle">Sign in to see your own transactions and budget.</p>
+
+    <p id="auth-message" class="auth-message"></p>
+
+    <div class="tabs">
+      <button id="tab-login" type="button" class="tab is-active">Sign in</button>
+      <button id="tab-register" type="button" class="tab">Create account</button>
+    </div>
+
+    <form id="auth-form" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="username" required>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+        <span id="password-hint" class="hint" style="display: none">
+          At least 8 characters. Use something you don't use anywhere else.
+        </span>
+      </div>
+
+      <div id="confirm-field" class="field" style="display: none">
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" name="confirm" autocomplete="new-password">
+      </div>
+
+      <button id="submit-btn" class="submit-btn" type="submit">Sign in</button>
+    </form>
+
+    <p id="forgot-row" class="forgot-row">
+      <button id="forgot-btn" type="button" class="link-btn">Forgot your password?</button>
+    </p>
+
+    <p class="auth-footer">
+      Your data is private to your account. Nobody else can see or change it.
+      Read the <a href="privacy.html" target="_blank" rel="noopener">privacy note</a>.
+    </p>
+  </main>
+
+  <script src="scripts/auth.js"></script>
+</body>
+</html>
