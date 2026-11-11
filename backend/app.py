@@ -69,6 +69,17 @@ DB_PATH = os.environ.get("DB_PATH") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "budget.db"
 )
 
+DATABASE_URL = os.environ.get("DATABASE_URL")
+USE_POSTGRES = bool(DATABASE_URL)
+if USE_POSTGRES:
+    import psycopg
+    from psycopg.rows import dict_row
+    DB_INTEGRITY_ERRORS = (psycopg.IntegrityError,)
+else:
+    DB_INTEGRITY_ERRORS = (sqlite3.IntegrityError,)
+
+ID_COLUMN = "SERIAL PRIMARY KEY" if USE_POSTGRES else "INTEGER PRIMARY KEY AUTOINCREMENT"
+
 MAX_AMOUNT = 1_000_000_000        # one billion KES is plenty for a student
 MAX_CATEGORY_LEN = 40
 MAX_NOTE_LEN = 200
@@ -90,11 +101,33 @@ RESET_TOKEN_TTL = timedelta(hours=1)
 
 
 # --- Database ---------------------------------------------------------------
+
+class Connection:
+    """Lets the rest of the code keep writing '?' placeholders on both
+    SQLite (local) and Postgres (Render)."""
+
+    def __init__(self, raw):
+        self._raw = raw
+
+    def execute(self, sql, params=()):
+        if USE_POSTGRES:
+            sql = sql.replace("?", "%s")
+        return self._raw.execute(sql, params)
+
+    def commit(self):
+        self._raw.commit()
+
+    def close(self):
+        self._raw.close()
+
+
 def get_db():
+    if USE_POSTGRES:
+        return Connection(psycopg.connect(DATABASE_URL, row_factory=dict_row))
     conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    return Connection(conn)
 
 
 def _table_columns(conn, table):
@@ -102,8 +135,49 @@ def _table_columns(conn, table):
 
 
 def _drop_legacy_tables(conn):
-    """Databases from before sign-in had no users: the old tables had no
-    user_id and can no longer be read safely, so start from fresh ones."""
+    """SQLite only: databases from before sign-in had no users, so start fresh."""
+    tables = [r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table'")]
+    if "transactions" in tables and "user_id" not in _table_columns(conn, "transactions"):
+        conn.execute("DROP TABLE transactions")
+    if "budgets" in tables and "user_id" not in _table_columns(conn, "budgets"):
+        conn.execute("DROP TABLE budgets")
+    conn.commit()
+
+class Connection:
+    """Lets the rest of the code keep writing '?' placeholders on both
+    SQLite (local) and Postgres (Render)."""
+
+    def __init__(self, raw):
+        self._raw = raw
+
+    def execute(self, sql, params=()):
+        if USE_POSTGRES:
+            sql = sql.replace("?", "%s")
+        return self._raw.execute(sql, params)
+
+    def commit(self):
+        self._raw.commit()
+
+    def close(self):
+        self._raw.close()
+
+
+def get_db():
+    if USE_POSTGRES:
+        return Connection(psycopg.connect(DATABASE_URL, row_factory=dict_row))
+    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return Connection(conn)
+
+
+def _table_columns(conn, table):
+    return [row[1] for row in conn.execute(f"PRAGMA table_info({table})")]
+
+
+def _drop_legacy_tables(conn):
+    """SQLite only: databases from before sign-in had no users, so start fresh."""
     tables = [r[0] for r in conn.execute(
         "SELECT name FROM sqlite_master WHERE type = 'table'")]
     if "transactions" in tables and "user_id" not in _table_columns(conn, "transactions"):
@@ -115,13 +189,14 @@ def _drop_legacy_tables(conn):
 
 def init_db():
     conn = get_db()
-    conn.execute("PRAGMA journal_mode = WAL")  # concurrent readers + one writer
-    conn.execute("PRAGMA busy_timeout = 10000")
-    _drop_legacy_tables(conn)
+    if not USE_POSTGRES:
+        conn.execute("PRAGMA journal_mode = WAL")
+        conn.execute("PRAGMA busy_timeout = 10000")
+        _drop_legacy_tables(conn)
     conn.execute(
-        """
+        f"""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {ID_COLUMN},
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             created_at TEXT NOT NULL
@@ -129,11 +204,11 @@ def init_db():
         """
     )
     conn.execute(
-        """
+        f"""
         CREATE TABLE IF NOT EXISTS transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id {ID_COLUMN},
             user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            amount REAL NOT NULL,
+            amount DOUBLE PRECISION NOT NULL,
             type TEXT NOT NULL,
             category TEXT NOT NULL,
             note TEXT NOT NULL DEFAULT '',
@@ -146,7 +221,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS budgets (
             user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             month TEXT NOT NULL,
-            limit_amount REAL NOT NULL,
+            limit_amount DOUBLE PRECISION NOT NULL,
             PRIMARY KEY (user_id, month)
         )
         """
@@ -155,8 +230,6 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_tx_user_date "
         "ON transactions (user_id, date DESC, id DESC)"
     )
-    # One-time password reset tokens. Only a hash of the token is stored, so a
-    # database leak does not hand out working reset links.
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS password_resets (
@@ -172,7 +245,6 @@ def init_db():
     )
     conn.commit()
     conn.close()
-
 
 # --- Validation helpers -----------------------------------------------------
 def parse_money(value):
@@ -370,21 +442,22 @@ def register():
 
     if rate_limit_hit(f"register:{client_ip()}", RATE_LIMIT_LOGIN_PER_IP):
         return json_error("Too many sign-up attempts. Please wait 15 minutes.", 429)
-
     conn = get_db()
     try:
         cur = conn.execute(
-            "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
+            "INSERT INTO users (email, password_hash, created_at) "
+            "VALUES (?, ?, ?) RETURNING id",
             (email, generate_password_hash(password), datetime.now(timezone.utc).isoformat()),
         )
+        new_id = cur.fetchone()["id"]
         conn.commit()
-    except sqlite3.IntegrityError:
+    except DB_INTEGRITY_ERRORS:
         conn.close()
         return json_error("An account with that email already exists.", 409)
 
     session.clear()
     session.permanent = True
-    session["user_id"] = cur.lastrowid
+    session["user_id"] = new_id
     conn.close()
     return jsonify({"email": email}), 201
 
@@ -617,21 +690,16 @@ def add_transaction():
         return json_error(error, 400)
 
     conn = get_db()
-    cur = conn.execute(
+    row = conn.execute(
         "INSERT INTO transactions (user_id, amount, type, category, note, date) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
+        "VALUES (?, ?, ?, ?, ?, ?) "
+        "RETURNING id, amount, type, category, note, date",
         (current_user_id(), values["amount"], values["type"], values["category"],
          values["note"], values["date"]),
-    )
-    conn.commit()
-    row = conn.execute(
-        "SELECT id, amount, type, category, note, date FROM transactions "
-        "WHERE id = ? AND user_id = ?",
-        (cur.lastrowid, current_user_id()),
     ).fetchone()
+    conn.commit()
     conn.close()
     return jsonify(dict(row)), 201
-
 
 @app.route("/api/transactions/<int:tx_id>", methods=["PUT"])
 def update_transaction(tx_id):
