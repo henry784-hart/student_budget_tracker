@@ -240,12 +240,13 @@ def rate_limit_clear(key):
 
 
 def client_ip():
-    # Render sits behind a proxy; the first X-Forwarded-For entry is the client.
-    forwarded = request.headers.get("X-Forwarded-For", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
+    # On Render, Cloudflare sets True-Client-IP and a client cannot forge it.
+    # X-Forwarded-For is NOT used: clients can send their own value.
+    if IS_PRODUCTION:
+        real = request.headers.get("True-Client-IP", "").strip()
+        if real:
+            return real
     return request.remote_addr or "unknown"
-
 
 def send_email(to, subject, body):
     """Deliver an email. Uses Resend when RESEND_API_KEY is set; otherwise the

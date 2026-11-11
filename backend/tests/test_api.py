@@ -152,7 +152,7 @@ def test_login_is_rate_limited_per_email(anon):
                       json={"email": "me@example.com", "password": "s3cure-pass"})
     assert right.status_code == 429
 
-    
+
 # --- unauthenticated access ------------------------------------------------
 
 
@@ -438,3 +438,18 @@ def test_security_headers(anon):
     headers = anon.get("/").headers
     assert headers["X-Content-Type-Options"] == "nosniff"
     assert headers["X-Frame-Options"] == "DENY"
+
+
+def test_client_ip_ignores_spoofed_forwarded_for(anon, monkeypatch):
+    monkeypatch.setattr(app_module, "IS_PRODUCTION", True)
+    env = {"REMOTE_ADDR": "10.0.0.1"}
+    with app_module.app.test_request_context(
+            "/",
+            headers={"X-Forwarded-For": "1.2.3.4", "True-Client-IP": "9.9.9.9"},
+            environ_base=env):
+        assert app_module.client_ip() == "9.9.9.9"
+    with app_module.app.test_request_context(
+            "/",
+            headers={"X-Forwarded-For": "1.2.3.4"},
+            environ_base=env):
+        assert app_module.client_ip() == "10.0.0.1"
