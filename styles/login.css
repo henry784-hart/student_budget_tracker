@@ -1,0 +1,147 @@
+/* Login / register page styles */
+:root {
+  --bg: #0f172a;
+  --card: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --danger: #dc2626;
+  --border: #e2e8f0;
+}
+
+* { box-sizing: border-box; }
+
+body.login-page {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(160deg, #0f172a 0%, #1e3a8a 100%);
+  color: var(--ink);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 22px 50px rgba(2, 6, 23, 0.45);
+}
+
+.auth-card h1 {
+  margin: 0 0 4px;
+  font-size: 1.45rem;
+}
+
+.auth-card .subtitle {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.tabs button {
+  flex: 1;
+  border: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabs button.is-active {
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+.field label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #334155;
+}
+
+.field input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.field .hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.submit-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit-btn:hover:not(:disabled) { background: var(--primary-dark); }
+.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.auth-message {
+  display: none;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  background: #fef2f2;
+  color: var(--danger);
+  border: 1px solid #fecaca;
+}
+
+.auth-message.success {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.auth-footer {
+  margin: 18px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}

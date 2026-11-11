@@ -39,6 +39,8 @@ const budgetFill = document.getElementById("budget-fill");
 const statusEl = document.getElementById("app-status");
 const mpesaText = document.getElementById("mpesa-text");
 const mpesaBtn = document.getElementById("mpesa-btn");
+const accountEmailEl = document.getElementById("account-email");
+const logoutBtn = document.getElementById("logout-btn");
 
 // 3. Date and number helpers
 function getTodayISODate() {
@@ -80,14 +82,44 @@ function showStatus(message) {
 
 async function request(path, options = {}) {
   const response = await fetch(API_URL + path, {
+    credentials: "include", // send the session cookie
     headers: { "Content-Type": "application/json" },
     ...options,
   });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    // Session expired or the user is not signed in: go to the login page.
+    redirectToLogin();
+    throw new Error("Please sign in again.");
+  }
   if (!response.ok) {
     throw new Error(data.error || "Something went wrong.");
   }
   return data;
+}
+
+function redirectToLogin() {
+  location.replace("login.html");
+}
+
+async function loadAccount() {
+  try {
+    const account = await request("/auth/me");
+    accountEmailEl.textContent = account.email || "";
+  } catch (err) {
+    // request() already redirects on 401.
+  }
+}
+
+async function logout() {
+  logoutBtn.disabled = true;
+  try {
+    await request("/auth/logout", { method: "POST" });
+  } catch (err) {
+    // Even if the call fails, drop the local state and go to login.
+  }
+  transactions = [];
+  location.replace("login.html");
 }
 
 function describeError(err) {
@@ -105,6 +137,7 @@ async function loadTransactions() {
     showStatus(describeError(err));
   }
   render();
+  loadAccount();
 }
 
 // Budget failures stay on the budget text so they are not wiped by
@@ -494,9 +527,12 @@ cancelBtn.addEventListener("click", () => {
 });
 budgetBtn.addEventListener("click", setBudget);
 mpesaBtn.addEventListener("click", fillFromMpesa);
+logoutBtn.addEventListener("click", logout);
 if (!dateInput.value) {
   dateInput.value = getTodayISODate();
 }
-render();
+
+// Load the signed-in user's own transactions and budget.
+loadAccount();
 loadTransactions();
 loadBudget();
