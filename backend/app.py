@@ -48,6 +48,7 @@ app.config.update(
     SESSION_COOKIE_SECURE=CROSS_SITE_COOKIES or IS_PRODUCTION,
     PERMANENT_SESSION_LIFETIME=timedelta(days=7),
     MAX_CONTENT_LENGTH=64 * 1024,   # reject bodies bigger than 64 KB
+        SESSION_COOKIE_PARTITIONED=CROSS_SITE_COOKIES,  # lets the cookie survive third-party cookie blocking
 )
 
 # Allow the static frontend (Live Server / GitHub Pages) to call this API.
