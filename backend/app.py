@@ -43,6 +43,7 @@ CROSS_SITE_COOKIES = bool(os.environ.get("CROSS_SITE_COOKIES"))
 
 app.config.update(
     SECRET_KEY=SECRET_KEY,
+           SESSION_COOKIE_NAME="budget_session",
     SESSION_COOKIE_HTTPONLY=True,   # JavaScript cannot read the cookie
     SESSION_COOKIE_SAMESITE="None" if CROSS_SITE_COOKIES else "Lax",
     SESSION_COOKIE_SECURE=CROSS_SITE_COOKIES or IS_PRODUCTION,
@@ -73,8 +74,14 @@ DB_PATH = os.environ.get("DB_PATH") or os.path.join(
 DATABASE_URL = os.environ.get("DATABASE_URL")
 USE_POSTGRES = bool(DATABASE_URL)
 if USE_POSTGRES:
-    import psycopg
-    from psycopg.rows import dict_row
+    try:
+        psycopg = __import__("psycopg")
+        dict_row = __import__("psycopg.rows", fromlist=["dict_row"]).dict_row
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "DATABASE_URL is set, but the optional psycopg dependency is not installed. "
+            "Install it with: python -m pip install psycopg[binary]"
+        ) from exc
     DB_INTEGRITY_ERRORS = (psycopg.IntegrityError,)
 else:
     DB_INTEGRITY_ERRORS = (sqlite3.IntegrityError,)
