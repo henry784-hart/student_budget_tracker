@@ -1,13 +1,13 @@
 /* Login / register page styles */
 :root {
   --bg: #0f172a;
-  --card: #ffffff;
-  --ink: #0f172a;
+  --card: #ff000009;
+  --ink: #000000;
   --muted: #64748b;
   --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --danger: #dc2626;
-  --border: #e2e8f0;
+  --primary-dark: #0d266a00;
+  --danger: #010101;
+  --border: #006eff;
 }
 
 * { box-sizing: border-box; }
@@ -47,7 +47,7 @@ body.login-page {
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
-  background: #f1f5f9;
+  background: #ffffff;
   border-radius: 10px;
   padding: 4px;
 }
@@ -88,7 +88,7 @@ body.login-page {
   border: 1px solid var(--border);
   border-radius: 9px;
   font: inherit;
-  background: #fff;
+  background: #ffffff;
   color: var(--ink);
 }
 
@@ -144,4 +144,31 @@ body.login-page {
   color: var(--muted);
   text-align: center;
   line-height: 1.5;
+}
+
+/* "Forgot your password?" shown as a text link */
+.forgot-row {
+  margin: 14px 0 0;
+  text-align: center;
+}
+
+.forgot-row .link-btn {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: #1d4ed8;
+  text-decoration: underline;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.forgot-row .link-btn:hover {
+  color: #1e40af;
+}
+
+.forgot-row .link-btn:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
 }
