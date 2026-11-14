@@ -5,3 +5,6 @@ __pycache__/
 .vscode/
 .venv/
 venv/
+*.db-shm
+*.db-wal
+backend/backups/
