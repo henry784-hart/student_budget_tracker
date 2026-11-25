@@ -18,13 +18,12 @@ see their balance, and keep track of where their money goes.
 - Monthly budget limit with progress bar and warnings
 - Newest transactions shown first
 - Paste an M-Pesa message to fill in a transaction automatically
-- Data is saved in a SQLite database through the Flask API
+- Data is saved in a database through the Flask API (SQLite locally, PostgreSQL in production)
 - Works on phones, tablets and laptops
 
 ## Built with
 
 - **Frontend:** HTML, CSS and JavaScript
-- **Backend:** Python, Flask and SQLite
 
 ## Security
 
