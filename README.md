@@ -1,5 +1,7 @@
 # Student Budget Tracker
 
+![Tests](https://github.com/henry784-hart/student_budget_tracker/actions/workflows/tests.yml/badge.svg)
+
 A simple web app that helps university students record income and expenses,
 see their balance, and keep track of where their money goes.
 
