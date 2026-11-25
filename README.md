@@ -24,6 +24,7 @@ see their balance, and keep track of where their money goes.
 ## Built with
 
 - **Frontend:** HTML, CSS and JavaScript
+- **Backend:** Python, Flask, SQLite (local) and PostgreSQL on Neon (production)
 
 ## Security
 
